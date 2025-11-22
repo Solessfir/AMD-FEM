@@ -317,7 +317,7 @@ struct FFEMFXMeshRenderVertex
         BaryPosBaseId(0)
 	{
 		// basis determinant default to +1.0
-		TangentZ.Vector.W = -1;
+		TangentZ.Vector.W = 255;
 	}
 
 	FFEMFXMeshRenderVertex(const FVector& InPosition, const FVector& InTangentX, const FVector& InTangentZ, const FVector2D& InTexCoord, const FColor& InColor, int InShardId, int InBaryPosBaseId) :
@@ -330,7 +330,7 @@ struct FFEMFXMeshRenderVertex
         BaryPosBaseId(InBaryPosBaseId)
 	{
 		// basis determinant default to +1.0
-		TangentZ.Vector.W = -1;
+		TangentZ.Vector.W = 255;
 	}
 
 	void SetTangents(const FVector& InTangentX, const FVector& InTangentY, const FVector& InTangentZ)
