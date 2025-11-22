@@ -1,0 +1,39 @@
+{
+	"FileVersion" : 3,
+	"Version" : 1,
+	"VersionName" : "1.0",
+	"FriendlyName" : "Finite Element Material",
+	"Description" : "AMD Developoed Physcis Simulation",
+	"Category" : "Physics",
+	"CreatedBy" : "AMD, Inc.",
+	"CreatedByURL" : "",
+	"DocsURL" : "",
+	"MarketplaceURL" : "",
+	"SupportURL" : "",
+	"EnabledByDefault" : true,
+	"CanContainContent" : false,
+	"IsBetaVersion" : false,
+	"Installed": true,
+	"Modules": [
+			{
+				"Name": "FEM",
+				"Type": "Runtime",
+				"LoadingPhase": "PostConfigInit",
+				"WhitelistPlatforms": [ "Win64", "Win32" ],
+				"BlacklistPlatforms": [ "TVOS", "IOS", "HTML5" ]
+			},
+			{
+				"Name": "FEMEditor",
+				"Type": "Editor",
+				"LoadingPhase": "Default",
+				"WhitelistPlatforms": [ "Win64", "Win32" ],
+				"BlacklistPlatforms": [ "TVOS", "IOS", "HTML5" ]
+			}
+	],
+	"Plugins": [
+			{
+				"Name": "ProceduralMeshComponent",
+				"Enabled": true               
+			}
+	]
+}
