@@ -3,7 +3,7 @@
 // ProceduralMeshComponent.[h,cpp]
 // LocalVertexFactory.[h,cpp]
 // Original code copyright:
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,7 +14,6 @@
 #include "PhysicsEngine/ConvexElem.h"
 #include "FEMMeshTypes.h"
 #include "FEMFXRender.h"
-#include "UnrealType.h"
 #include "FEMCommon.h"
 #include "FEMFXTetMeshParameters.h"
 #include "FEMResource.h"
@@ -70,6 +69,7 @@ public:
 	FFEMFXMeshSceneProxy(UFEMFXMeshComponent* comp);
 	~FFEMFXMeshSceneProxy();
 
+	virtual SIZE_T GetTypeHash() const override;
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const;
 	virtual bool CanBeOccluded() const override;
 
@@ -431,5 +431,3 @@ private:
 
     TArray<FShardVertTetAssignments> UpdatingShardVertTetAssignmentsBuffer;
 };
-
-

@@ -62,7 +62,7 @@ namespace AMD
         task* execute()
         {
             TaskFunc(taskData, taskBeginIndex, taskEndIndex);
-            return NULL;
+            return nullptr;
         }
     };
 #elif USE_UE4
@@ -183,7 +183,7 @@ namespace AMD
 #if USE_UE4
         gSampleTaskSystemQueuedThreadPool->Destroy();
         delete gSampleTaskSystemQueuedThreadPool;
-        gSampleTaskSystemQueuedThreadPool = NULL;
+        gSampleTaskSystemQueuedThreadPool = nullptr;
 #elif USE_TL
         TLJobSystem::Destroy();
 #endif
@@ -258,7 +258,7 @@ namespace AMD
 #if UE4_ASYNC_TASK
         (new FAutoDeleteAsyncTask<UE4Task>(TaskFunc, taskData, taskBeginIndex, taskEndIndex))->StartBackgroundTask();
 #elif UE4_TASK_GRAPH
-        TGraphTask<UE4Task>::CreateTask(NULL, ENamedThreads::AnyThread).ConstructAndDispatchWhenReady(TaskFunc, taskData, taskBeginIndex, taskEndIndex);
+        TGraphTask<UE4Task>::CreateTask(nullptr, ENamedThreads::AnyThread).ConstructAndDispatchWhenReady(TaskFunc, taskData, taskBeginIndex, taskEndIndex);
 #elif UE4_QUEUED_WORK
 
         void* mem = FMemory::Malloc(sizeof(UE4Task), alignof(UE4Task));
@@ -373,7 +373,7 @@ namespace AMD
         waitTask->set_ref_count(1);
         return (void *)waitTask;
 #else
-        return NULL;
+        return nullptr;
 #endif
     }
 
@@ -447,4 +447,3 @@ namespace AMD
 }
 
 #endif
-

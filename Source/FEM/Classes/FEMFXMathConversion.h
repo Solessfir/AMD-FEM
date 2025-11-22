@@ -3,10 +3,10 @@
 // Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 //---------------------------------------------------------------------------------------
+
 #pragma once
 
 #include "AMD_FEMFX.h"
-//#include "FEMFXVectormath.h"
 #include "CoreMinimal.h"
 
 // FEMFX simulation uses a right-handed coordinate system, and samples convention is Y is up.

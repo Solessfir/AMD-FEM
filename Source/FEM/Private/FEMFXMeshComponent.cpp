@@ -3,17 +3,12 @@
 // ProceduralMeshComponent.[h,cpp]
 // LocalVertexFactory.[h,cpp]
 // Original code copyright:
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "FEMFXMeshComponent.h"
-#include "CoreMinimal.h"
+#include "FEM.h"
 #include "Engine/StaticMesh.h"
-
-
-#include "UnrealType.h"
-
 #include "VertexFactory.h"
-
 #include "PrimitiveViewRelevance.h"
 #include "RenderResource.h"
 #include "RenderingThread.h"
@@ -30,8 +25,7 @@
 #include "DynamicMeshBuilder.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 #include "FEMFXRender.h"
-#include "Materials/MaterialInstanceDynamic.h"//MaterialInstanceDynamic.h"
-
+#include "Materials/MaterialInstanceDynamic.h"
 #include "AMD_FEMFX.h"
 #include "FEMFXVectormath.h"
 #include "FEMMesh.h"
@@ -39,25 +33,10 @@
 #include "RenderTetAssignment.h"
 #include "FEMFXScene.h"
 #include "FEMConnectivity.h"
-#include "WoodPanelCommon.h"
 #include "PreProcessedMesh.h"
-
-#include "Paths.h"
-
-#include "ConstructorHelpers.h"
-#include "PositionVertexBuffer.h"
 #include "RawIndexBuffer.h"
-#include "StaticMeshVertexBuffer.h"
-#include "FEMFXVectormath.h"
 #include "FEMMeshQueries.h"
-#include "ProceduralMeshHelper.h"
-
-#include "RenderTetAssignment.h"
-
-#include "Runtime/CoreUObject/Public/UObject/Class.h"
-
-#include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
-#include "IFEM.h"
+#include "Kismet/GameplayStatics.h"
 
 //DECLARE_CYCLE_STAT(TEXT("Create FEMFXMesh Proxy"), STAT_FEMFXMesh_CreateSceneProxy, STATGROUP_FEMFXMesh);
 //DECLARE_CYCLE_STAT(TEXT("Create Mesh Section"), STAT_FEMFXMesh_CreateMeshSection, STATGROUP_FEMFXMesh);
@@ -130,7 +109,7 @@ FFEMFXMeshSceneProxy::FFEMFXMeshSceneProxy(UFEMFXMeshComponent* Component)
 
 				// Grab material
 				NewSection->MaterialIndex = SrcSection.MaterialIndex;
-				/*if (NewSection->Material == NULL)
+				/*if (NewSection->Material == nullptr)
 				{
 					NewSection->Material = UMaterial::GetDefaultMaterial(MD_Surface);
 				}*/
@@ -393,13 +372,11 @@ void FFEMFXMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*
     // Set up wireframe material (if needed)
     const bool bWireframe = AllowDebugViewmodes() && ViewFamily.EngineShowFlags.Wireframe;
 
-    FColoredMaterialRenderProxy* WireframeMaterialInstance = NULL;
+    FColoredMaterialRenderProxy* WireframeMaterialInstance = nullptr;
     if (bWireframe)
     {
         WireframeMaterialInstance = new FColoredMaterialRenderProxy(
-            GEngine->WireframeMaterial ? GEngine->WireframeMaterial->GetRenderProxy(IsSelected()) : NULL,
-            FLinearColor(0, 0.5f, 1.f)
-        );
+            GEngine->WireframeMaterial ? GEngine->WireframeMaterial->GetRenderProxy() : nullptr, FLinearColor(0, 0.5f, 1.f));
 
         Collector.RegisterOneFrameMaterialProxy(WireframeMaterialInstance);
     }
@@ -415,7 +392,7 @@ void FFEMFXMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*
 				Mat = UMaterial::GetDefaultMaterial(MD_Surface);
 			}
 
-			FMaterialRenderProxy* MaterialProxy = bWireframe ? WireframeMaterialInstance : Mat->GetRenderProxy(IsSelected());
+			FMaterialRenderProxy* MaterialProxy = bWireframe ? WireframeMaterialInstance : Mat->GetRenderProxy();
 			// For each view..
             for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
             {
@@ -439,7 +416,10 @@ void FFEMFXMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*
                     Mesh.bWireframe = bWireframe;
                     Mesh.VertexFactory = &Section->VertexFactory;
                     Mesh.MaterialRenderProxy = MaterialProxy;
-                    BatchElement.PrimitiveUniformBuffer = CreatePrimitiveUniformBufferImmediate(GetLocalToWorld(), GetBounds(), GetLocalBounds(), true, UseEditorDepthTest());
+
+                	FBoxSphereBounds OutBounds;
+                	GetPreSkinnedLocalBounds(OutBounds);
+                    BatchElement.PrimitiveUniformBuffer = CreatePrimitiveUniformBufferImmediate(GetLocalToWorld(), GetBounds(), GetLocalBounds(), OutBounds, true, AlwaysHasVelocity());
                     BatchElement.FirstIndex = 0;
                     BatchElement.NumPrimitives = Section->IndexBuffer.Indices.Num() / 3;
                     BatchElement.MinVertexIndex = 0;
@@ -468,6 +448,12 @@ void FFEMFXMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*
          }
      }
 #endif
+}
+
+SIZE_T FFEMFXMeshSceneProxy::GetTypeHash() const
+{
+	static size_t UniquePointer;
+	return reinterpret_cast<size_t>(&UniquePointer);
 }
 
 FPrimitiveViewRelevance FFEMFXMeshSceneProxy::GetViewRelevance(const FSceneView* View) const
@@ -711,7 +697,7 @@ void UFEMFXMeshComponent::SetTetMeshPositionAndRotation(FVector position, FRotat
 {
 	AMD::FmVector3 newPos = ConvertUnrealToFEMFXVector(position) / 100;
 
-    AMD::FmResetFromRestPositions(NULL, TetMesh, AMD::FmMatrix3::identity(), newPos);
+    AMD::FmResetFromRestPositions(nullptr, TetMesh, AMD::FmMatrix3::identity(), newPos);
 }
 
 void UFEMFXMeshComponent::CleanUpAfterImport()
@@ -803,7 +789,7 @@ void UFEMFXMeshComponent::LoadSimObject()
         &bounds,
         fractureGroupCounts,
         tetFractureGroupIds,
-        vertIncidentTets, (AMD::FmTetVertIds*)FEMMesh->GetComponentResource().tetVertIds.GetData(), NULL,
+        vertIncidentTets, (AMD::FmTetVertIds*)FEMMesh->GetComponentResource().tetVertIds.GetData(), nullptr,
         FEMMesh->GetComponentResource().NumVerts, FEMMesh->GetComponentResource().NumTets, FractureEnabled);
 
 	AMD::FmTetMeshBufferSetupParams tetMeshParams;
@@ -1429,36 +1415,35 @@ void UFEMFXMeshComponent::UpdateMeshSectionVertexBaryPositions(int32 SectionInde
 
 void UFEMFXMeshComponent::UpdateMeshSectionIndices(int32 SectionIndex, const TArray<int32>& AddedIndices)
 {
-	//SCOPE_CYCLE_COUNTER(STAT_FEMFXMesh_UpdateSectionGT);
 	if (!IsValid(FEMMesh))
 		return;
 
-	if (SectionIndex < FEMMesh->GetImportedResource()->GetNumSections())
+	if (SectionIndex >= FEMMesh->GetImportedResource()->GetNumSections())
+		return;
+
+	if (!SceneProxy)
+		return;
+
+	FFEMFXMeshSceneProxy* Proxy = static_cast<FFEMFXMeshSceneProxy*>(SceneProxy);
+	FFEMFXMeshProxySection* Section = Proxy->GetSection(SectionIndex);
+	const int32 IndexOffset = Section->IndexBuffer.Indices.Num();
+
+	// Copy the indices to be safe for the render thread
+	TArray<int32> CopiedIndices = AddedIndices;
+
+	// Allocate the section data on the heap
+	FFEMFXMeshSectionIndexUpdateData* SectionData = new FFEMFXMeshSectionIndexUpdateData;
+	SectionData->TargetSection = SectionIndex;
+	SectionData->IndexOffset = IndexOffset;
+	SectionData->AddedIndexBuffer = MoveTemp(CopiedIndices);
+
+	ENQUEUE_RENDER_COMMAND(FEMFXMeshSectionUpdate)([Proxy, SectionData](FRHICommandListImmediate& RHICmdList)
 	{
-		FFEMFXMeshProxySection* Section = ((FFEMFXMeshSceneProxy*)SceneProxy)->GetSection(SectionIndex);
-
-		const int32 IndexOffset = Section->IndexBuffer.Indices.Num();
-		int32 NumIndicesToAdd = AddedIndices.Num();
-		if (SceneProxy)
-		{
-			// Create data to update section
-			FFEMFXMeshSectionIndexUpdateData* SectionData = new FFEMFXMeshSectionIndexUpdateData;
-			SectionData->TargetSection = SectionIndex;
-			SectionData->IndexOffset = IndexOffset;
-			SectionData->AddedIndexBuffer = AddedIndices;
-
-			// Enqueue command to send to render thread
-			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-				FFEMFXMeshSectionUpdate,
-				FFEMFXMeshSceneProxy*, FEMFXMeshSceneProxy, (FFEMFXMeshSceneProxy*)SceneProxy,
-				FFEMFXMeshSectionIndexUpdateData*, SectionData, SectionData,
-				{
-					FEMFXMeshSceneProxy->UpdateSection_RenderThread(SectionData);
-				}
-			);
-		}
-	}
+		Proxy->UpdateSection_RenderThread(SectionData);
+		delete SectionData;
+	});
 }
+
 
 void UFEMFXMeshComponent::PostEditSceneProxyUpdate()
 {
@@ -1592,25 +1577,22 @@ void UFEMFXMeshComponent::SetMeshSectionVisible(int32 SectionIndex, bool bNewVis
 	if (!IsValid(FEMMesh))
 		return;
 
-    if (SectionIndex < FEMMesh->GetImportedResource()->GetNumSections())
-    {
-        // Set game thread state
-		//FEMMesh->GetImportedResource()->FEMFXMeshSections[SectionIndex].bSectionVisible = bNewVisibility;
+	if (SectionIndex < FEMMesh->GetImportedResource()->GetNumSections())
+	{
+		// Set game thread state if needed
+		// FEMMesh->GetImportedResource()->FEMFXMeshSections[SectionIndex].bSectionVisible = bNewVisibility;
 
-        if (SceneProxy)
-        {
-            // Enqueue command to modify render thread info
-            ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
-                FFEMFXMeshSectionVisibilityUpdate,
-                FFEMFXMeshSceneProxy*, FEMFXMeshSceneProxy, (FFEMFXMeshSceneProxy*)SceneProxy,
-                int32, SectionIndex, SectionIndex,
-                bool, bNewVisibility, bNewVisibility,
-                {
-                    FEMFXMeshSceneProxy->SetSectionVisibility_RenderThread(SectionIndex, bNewVisibility);
-                }
-            );
-        }
-    }
+		if (SceneProxy)
+		{
+			FFEMFXMeshSceneProxy* Proxy = static_cast<FFEMFXMeshSceneProxy*>(SceneProxy);
+			int32 Index = SectionIndex;
+
+			ENQUEUE_RENDER_COMMAND(FEMFXMeshSectionVisibilityUpdate)([Proxy, Index, bNewVisibility](FRHICommandListImmediate& RHICmdList)
+			{
+				Proxy->SetSectionVisibility_RenderThread(Index, bNewVisibility);
+			});
+		}
+	}
 }
 
 void UFEMFXMeshComponent::UpdateLocalBounds()
@@ -1824,6 +1806,6 @@ void UFEMFXMeshComponent::SetTetKinematic(int TetId, bool IsKinematic, bool IsRe
 		else
             AMD::FmRemoveVertFlags(GetTetMeshPtr(), TetVerts.ids[i], FM_VERT_FLAG_KINEMATIC_REMOVABLE);
 
-        FmSetVertVelocity(NULL, GetTetMeshPtr(), TetVerts.ids[i], AMD::FmInitVector3(KinematicVelocity.X, KinematicVelocity.Y, KinematicVelocity.Z));
+        FmSetVertVelocity(nullptr, GetTetMeshPtr(), TetVerts.ids[i], AMD::FmInitVector3(KinematicVelocity.X, KinematicVelocity.Y, KinematicVelocity.Z));
 	}
 }

@@ -3,9 +3,9 @@
 // Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 //---------------------------------------------------------------------------------------
+
 #pragma once
 
-#include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "ActorFactories/ActorFactory.h"
 #include "FEMActorFactory.generated.h"

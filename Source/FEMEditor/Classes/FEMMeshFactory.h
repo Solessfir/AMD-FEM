@@ -3,14 +3,13 @@
 // Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 //---------------------------------------------------------------------------------------
+
 #pragma once
-#include "CoreMinimal.h"
+
 #include "UObject/ObjectMacros.h"
 #include "EditorFramework/AssetImportData.h"
 #include "Factories/Factory.h"
-
 #include "FEMMeshFactory.generated.h"
-
 
 UCLASS(config = EditorPerProjectUserSettings, MinimalAPI)
 class UFEMMeshImportData : public UAssetImportData

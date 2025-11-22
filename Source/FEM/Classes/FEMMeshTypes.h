@@ -3,20 +3,15 @@
 // Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 //---------------------------------------------------------------------------------------
+
 #pragma once
 
 #include "CoreMinimal.h"
 #include "RenderResource.h"
-#include "ResourceArray.h"
 #include "RenderResource.h"
 #include "PackedNormal.h"
 #include "RenderUtils.h"
-
 #include "FEMMeshTypes.generated.h"
-
-
-
-
 
 // Render indices for the interior faces that will be exposed on fracture of each of the four tet faces
 USTRUCT(BlueprintType)
@@ -273,11 +268,11 @@ struct FFEMFXMeshSection
 	bool bSectionVisible;
 
     FFEMFXMeshSection()
-		: SectionLocalBox(ForceInit)
+		: MaterialIndex(0)
 		, MaxTriIndices(0)
+		, SectionLocalBox(ForceInit)
 		, bEnableCollision(false)
 		, bSectionVisible(true)
-		, MaterialIndex(0)
 	{}
 
 	/** Reset this section, clear all mesh info. */
@@ -322,7 +317,7 @@ struct FFEMFXMeshRenderVertex
         BaryPosBaseId(0)
 	{
 		// basis determinant default to +1.0
-		TangentZ.Vector.W = 255;
+		TangentZ.Vector.W = -1;
 	}
 
 	FFEMFXMeshRenderVertex(const FVector& InPosition, const FVector& InTangentX, const FVector& InTangentZ, const FVector2D& InTexCoord, const FColor& InColor, int InShardId, int InBaryPosBaseId) :
@@ -335,7 +330,7 @@ struct FFEMFXMeshRenderVertex
         BaryPosBaseId(InBaryPosBaseId)
 	{
 		// basis determinant default to +1.0
-		TangentZ.Vector.W = 255;
+		TangentZ.Vector.W = -1;
 	}
 
 	void SetTangents(const FVector& InTangentX, const FVector& InTangentY, const FVector& InTangentZ)
@@ -346,12 +341,11 @@ struct FFEMFXMeshRenderVertex
 		TangentZ.Vector.W = GetBasisDeterminantSign(InTangentX, InTangentY, InTangentZ) < 0.0f ? 0 : 255;
 	}
 
-	FVector GetTangentY()
+	FVector GetTangentY() const
 	{
-		FVector TanX = TangentX;
-		FVector TanZ = TangentZ;
-
-		return (TanZ ^ TanX) * ((float)TangentZ.Vector.W / 127.5f - 1.0f);
+		const FVector TanX = TangentX.ToFVector();
+		const FVector TanZ = TangentZ.ToFVector();
+		return (TanZ ^ TanX) * (static_cast<float>(TangentZ.Vector.W) / 127.5f - 1.0f);
 	};
 
 	FVector Position;
@@ -392,12 +386,11 @@ public:
 	virtual void InitRHI() override
 	{
 		const uint32 SizeInBytes = Vertices.Num() * sizeof(FFEMFXMeshRenderVertex);
-
 		FFEMFXMeshVertexResourceArray ResourceArray(Vertices.GetData(), SizeInBytes);
-		FRHIResourceCreateInfo CreateInfo(&ResourceArray);
+		FRHIResourceCreateInfo CreateInfo(TEXT("FFEMFXMeshVertexBuffer"));
+		CreateInfo.ResourceArray = &ResourceArray;
 		VertexBufferRHI = RHICreateVertexBuffer(SizeInBytes, BUF_Static, CreateInfo);
 	}
-
 };
 
 class FFEMFXMeshIndexBuffer : public FIndexBuffer
@@ -412,7 +405,7 @@ public:
 
 	virtual void InitRHI() override
 	{
-		FRHIResourceCreateInfo CreateInfo;
+		FRHIResourceCreateInfo CreateInfo(TEXT("FFEMFXMeshIndexBuffer"));
 		void* Buffer = nullptr;
 
 		if (MaxIndices <= Indices.Num())

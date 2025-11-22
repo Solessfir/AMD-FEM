@@ -10,9 +10,7 @@
 #include "AMD_FEMFX.h"
 #include "FEMFXMathConversion.h"
 #include "FEMMesh.h"
-#include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
-#include "ConstructorHelpers.h"
-#include "IFEM.h"
+#include "Kismet/GameplayStatics.h"
 
 AFEMActor::AFEMActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -77,10 +75,7 @@ void AFEMActor::Destroyed()
 
 void AFEMActor::PreFEMLoad_Implementation()
 {
-	FAttachmentTransformRules rules(EAttachmentRule::KeepWorld, false);
-	FTransform trans = FTransform::Identity;
-
-	MeshComponents = GetComponentsByClass(UFEMFXMeshComponent::StaticClass());
+	GetComponents(UFEMFXMeshComponent::StaticClass(), MeshComponents);
 
 	TArray<AActor*> ActorsFound;
 	UGameplayStatics::GetAllActorsOfClass(this, AFEMFXScene::StaticClass(), ActorsFound);

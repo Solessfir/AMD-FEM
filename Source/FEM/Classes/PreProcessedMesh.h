@@ -3,14 +3,12 @@
 // Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 //---------------------------------------------------------------------------------------
-#pragma once
 
+#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "FEMCommon.h"
 #include "FEMMeshTypes.h"
-
 #include "PreProcessedMesh.generated.h"
 
 struct PreProcessedMesh

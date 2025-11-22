@@ -1,9 +1,8 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "FEMFXDebugActor.h"
 #include "AMD_FEMFX.h"
 #include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
-#include "IFEM.h"
 
 AFEMFXDebugActor::AFEMFXDebugActor()
 {

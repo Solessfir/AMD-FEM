@@ -3,6 +3,7 @@
 // Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 //---------------------------------------------------------------------------------------
+
 #pragma once
 
 #include "CoreMinimal.h"

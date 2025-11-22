@@ -59,7 +59,7 @@ namespace AMD
     void SampleDestroyTaskWaitCounter(FmTaskWaitCounter* counter);
 
     // Submit task to task scheduler which runs TaskFunc with taskData and taskIndex arguments.
-    // If waitCounter non-NULL, this call will increment counter, and task will decrement on completion
+    // If waitCounter non-nullptr, this call will increment counter, and task will decrement on completion
     void SampleSubmitTask(const char* taskName, FmTaskFuncCallback TaskFunc, void* taskData, int32_t taskBeginIndex, int32_t taskEndIndex, FmTaskWaitCounter* waitCounter);
 
     void SampleParallelFor(const char* taskName, FmTaskFuncCallback TaskFunc, void* taskData, int32_t taskCount);

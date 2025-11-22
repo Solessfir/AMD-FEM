@@ -3,9 +3,8 @@
 // Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 //---------------------------------------------------------------------------------------
+
 #include "FEMFXRigidBodyScene.h"
-#include "FEMFXScene.h"
-//#include "ExampleRigidBodies.h"
 
 AFEMFXRigidBodyScene::AFEMFXRigidBodyScene(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

@@ -11,7 +11,6 @@
 #include "FEMActor.h"
 #include "FEMCommon.h"
 #include "sample_task_system.h"
-#include "IFEM.h"
 
 void* FmAlignedMalloc(size_t size, size_t alignment)
 {
@@ -206,7 +205,7 @@ void AFEMFXScene::Initialize()
 	collisionReport.maxVolumeContacts = MaxCollisionVolumeContacts;
 	collisionReport.maxVolumeContactsPerObjectPair = MaxVolumeContactsPerObjectPair;;
 	collisionReport.minContactRelVel = MinContactRelativeVelocity;
-	collisionReport.volumeContactBuffer = NULL;
+	collisionReport.volumeContactBuffer = nullptr;
 
     AMD::FmSetSceneControlParams(AMDFXSceneBuffer, params);
     AMD::FmSetSceneTaskSystemCallbacks(AMDFXSceneBuffer, taskSystemCallbacks);
@@ -313,7 +312,7 @@ void AFEMFXScene::FreeScene()
 
         FmDestroyScene(AMDFXSceneBuffer);
 
-		AMDFXSceneBuffer = NULL;
+		AMDFXSceneBuffer = nullptr;
 	}
 }
 

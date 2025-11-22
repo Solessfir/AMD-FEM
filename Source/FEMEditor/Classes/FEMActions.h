@@ -1,11 +1,8 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Developer/AssetTools/Public/AssetTypeActions_Base.h"
-//#include "AssetTypeActions_Base.h"
-
+#include "AssetTypeActions_Base.h"
 
 class FFEMAssetActions : public FAssetTypeActions_Base
 {

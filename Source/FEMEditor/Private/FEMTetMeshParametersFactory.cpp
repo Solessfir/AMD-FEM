@@ -3,22 +3,11 @@
 // Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 //---------------------------------------------------------------------------------------
-#include "FEMEditorPCH.h"
+
 #include "FEMTetMeshParametersFactory.h"
-
 #include "Editor.h"
-#include "ActorFactories/ActorFactoryEmptyActor.h"
-#include "AssetRegistryModule.h"
-#include "BlueprintEditorUtils.h"
-#include "ObjectTools.h"
-#include "PackageTools.h"
-#include "Kismet2/KismetEditorUtilities.h"
-#include "AssetSelection.h"
-
-#include "ConstructorHelpers.h"
 #include "FEMFXTetMeshParameters.h"
-
-#include "Developer/AssetTools/Public/AssetTypeCategories.h"
+#include "AssetTypeCategories.h"
 
 UFEMTetMeshParametersFactory::UFEMTetMeshParametersFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

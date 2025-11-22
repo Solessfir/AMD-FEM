@@ -3,14 +3,11 @@
 // Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 //---------------------------------------------------------------------------------------
-#include "FEMEditorPCH.h"
+
 #include "FEMActions.h"
-
-#include "../FEM/Classes/FEMResource.h"
-#include "../FEM/Classes/FEMActor.h"
-#include "../FEM/Classes/FEMFXTetMeshParameters.h"
-#include "../FEM/Classes/FEMMesh.h"
-
+#include "FEMResource.h"
+#include "FEMFXTetMeshParameters.h"
+#include "FEMMesh.h"
 
 uint32 FFEMAssetActions::GetCategories()
 {

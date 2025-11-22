@@ -3,13 +3,11 @@
 // Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 //---------------------------------------------------------------------------------------
-#include "FEMEditorPCH.h"
-#include "FEMActorFactory.h"
 
+#include "FEMActorFactory.h"
 #include "AssetData.h"
 #include "FEMActor.h"
 #include "FEMResource.h"
-#include "Text.h"
 
 UFEMActorFactory::UFEMActorFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

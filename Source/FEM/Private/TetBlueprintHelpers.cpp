@@ -3,6 +3,7 @@
 // Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 //---------------------------------------------------------------------------------------
+
 #include "TetBlueprintHelpers.h"
 #include "AMD_FEMFX.h"
 

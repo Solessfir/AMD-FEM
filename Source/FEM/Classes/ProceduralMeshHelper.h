@@ -3,16 +3,15 @@
 // Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 //---------------------------------------------------------------------------------------
+
 #pragma once
 
 #include "FEMCommon.h"
-
 #include <vector>
-
 
 static float randfloat()
 {
-	return (float)rand() / RAND_MAX;
+	return static_cast<float>(rand()) / RAND_MAX;
 }
 
 static float randfloat2()

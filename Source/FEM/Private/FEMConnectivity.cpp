@@ -5,8 +5,6 @@
 //---------------------------------------------------------------------------------------
 
 #include "FEMConnectivity.h"
-#include "AMD_FEMFX.h"
-//#include "../../FEMLib/FEMFXBeta/amd_femfx/inc/AMD_FEMFX.h"
 
 void FEMConnectivity::AddIncidentTetToSet(std::vector<AMD::uint>& vertTetIds, AMD::uint tetId)//, AMD::uint Offset, AMD::uint Pitch)
 {
@@ -27,4 +25,3 @@ void FEMConnectivity::AddIncidentTetToSet(std::vector<AMD::uint>& vertTetIds, AM
     }
     vertTetIds.push_back(tetId);
 }
-

@@ -3,6 +3,7 @@
 // Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 //---------------------------------------------------------------------------------------
+
 #pragma once
 
 #include "CoreMinimal.h"
@@ -10,15 +11,10 @@
 #include "FEMMeshTypes.h"
 #include "FEMCommon.h"
 #include "RenderTetAssignment.h"
-#include "PreProcessedMesh.h"
 #include "FEMResource.h"
-#include <vector>
-
 #include "FEMMesh.generated.h"
 
-
 class UFEMMeshResource;
-
 
 UCLASS(hidecategories = Object, BlueprintType)
 class FEM_API UFEMTetMesh : public UObject
@@ -217,7 +213,3 @@ private:
 	UPROPERTY()
 	TArray<FShardVertTetAssignments> ShardVertTetAssignmentsBuffer;
 };
-
-
-
-

@@ -3,11 +3,11 @@
 // Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 //---------------------------------------------------------------------------------------
+
 #pragma once
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
-
 #include "FEMFXTetMeshParameters.generated.h"
 
 #define MinMax(a,b,c,d) ClampMin = a, ClampMax = b, UIMin = c, UIMax = d

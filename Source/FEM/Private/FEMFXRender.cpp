@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 FEMFXVertexFactory.cpp: Local vertex factory implementation
@@ -10,108 +10,6 @@ FEMFXVertexFactory.cpp: Local vertex factory implementation
 #include "MeshBatch.h"
 #include "ShaderParameterUtils.h"
 #include "Rendering/ColorVertexBuffer.h"
-#include "IFEM.h"
-
-void FFEMFXMeshVertexFactoryShaderParameters::Bind(const FShaderParameterMap& ParameterMap)
-{
-    TetMeshVertexPosBufferParameter.Bind(ParameterMap, TEXT("TetMeshVertexPosBuffer"));
-    TetMeshVertexRotBufferParameter.Bind(ParameterMap, TEXT("TetMeshVertexRotBuffer"));
-	TetMeshDeformationBufferParameter.Bind(ParameterMap, TEXT("TetMeshDeformationBuffer"));
-    TetVertexIdBufferParameter.Bind(ParameterMap, TEXT("TetVertexIdBuffer"));
-    BarycentricPosIdBufferParameter.Bind(ParameterMap, TEXT("BarycentricPosIdBuffer"));
-    BarycentricPosBufferParameter.Bind(ParameterMap, TEXT("BarycentricPosBuffer"));
-}
-
-void FFEMFXMeshVertexFactoryShaderParameters::SetMesh(FRHICommandList& RHICmdList, FShader* Shader, const FVertexFactory* VertexFactory, const FSceneView& View, const FMeshBatchElement& BatchElement, uint32 DataFlags) const
-{
-	SCOPED_DRAW_EVENT(RHICmdList, FEMRender)
-
-    if (BatchElement.bUserDataIsColorVertexBuffer)
-    {
-        FColorVertexBuffer* OverrideColorVertexBuffer = (FColorVertexBuffer*)BatchElement.UserData;
-        check(OverrideColorVertexBuffer);
-        static_cast<const FFEMFXMeshVertexFactory*>(VertexFactory)->SetColorOverrideStream(RHICmdList, OverrideColorVertexBuffer);
-    }
-    else
-    {
-        FFEMFXMeshBatchElementParams* BatchElementParams = (FFEMFXMeshBatchElementParams*)BatchElement.UserData;
-        check(BatchElementParams);
-
-        FShaderResourceViewRHIRef TetMeshVertexPosBufferSRV = BatchElementParams->TetMeshVertexPosBufferSRV;
-        FShaderResourceViewRHIRef TetMeshVertexRotBufferSRV = BatchElementParams->TetMeshVertexRotBufferSRV;
-		FShaderResourceViewRHIRef TetMeshDeformationBufferSRV = BatchElementParams->TetMeshDeformationBufferSRV;
-        FShaderResourceViewRHIRef TetVertexIdBufferSRV = BatchElementParams->TetVertexIdBufferSRV;
-        FShaderResourceViewRHIRef BarycentricPosIdBufferSRV = BatchElementParams->BarycentricPosIdBufferSRV;
-        FShaderResourceViewRHIRef BarycentricPosBufferSRV = BatchElementParams->BarycentricPosBufferSRV;
-
-        if (TetMeshVertexPosBufferParameter.IsBound() && TetMeshVertexPosBufferSRV)
-        {
-            if (Shader->GetTarget().Frequency == SF_Vertex)
-            {
-                SetSRVParameter(
-                    RHICmdList,
-                    Shader->GetVertexShader(),
-                    TetMeshVertexPosBufferParameter,
-                    TetMeshVertexPosBufferSRV);
-            }
-        }
-        if (TetMeshVertexRotBufferParameter.IsBound() && TetMeshVertexRotBufferSRV)
-        {
-            if (Shader->GetTarget().Frequency == SF_Vertex)
-            {
-                SetSRVParameter(
-                    RHICmdList,
-                    Shader->GetVertexShader(),
-                    TetMeshVertexRotBufferParameter,
-                    TetMeshVertexRotBufferSRV);
-            }
-        }
-		if (TetMeshDeformationBufferParameter.IsBound() && TetMeshDeformationBufferSRV)
-		{
-			if (Shader->GetTarget().Frequency == SF_Vertex)
-			{
-				SetSRVParameter(
-					RHICmdList,
-					Shader->GetVertexShader(),
-					TetMeshDeformationBufferParameter,
-					TetMeshDeformationBufferSRV);
-			}
-		}
-        if (TetVertexIdBufferParameter.IsBound() && TetVertexIdBufferSRV)
-        {
-            if (Shader->GetTarget().Frequency == SF_Vertex)
-            {
-                SetSRVParameter(
-                    RHICmdList,
-                    Shader->GetVertexShader(),
-                    TetVertexIdBufferParameter,
-                    TetVertexIdBufferSRV);
-            }
-        }
-        if (BarycentricPosIdBufferParameter.IsBound() && BarycentricPosIdBufferSRV)
-        {
-            if (Shader->GetTarget().Frequency == SF_Vertex)
-            {
-                SetSRVParameter(
-                    RHICmdList,
-                    Shader->GetVertexShader(),
-                    BarycentricPosIdBufferParameter,
-                    BarycentricPosIdBufferSRV);
-            }
-        }
-        if (BarycentricPosBufferParameter.IsBound() && BarycentricPosBufferSRV)
-        {
-            if (Shader->GetTarget().Frequency == SF_Vertex)
-            {
-                SetSRVParameter(
-                    RHICmdList,
-                    Shader->GetVertexShader(),
-                    BarycentricPosBufferParameter,
-                    BarycentricPosBufferSRV);
-            }
-        }
-    }
-}
 
 /**
 * Should we cache the material's shadertype on this platform with this vertex factory?
@@ -141,8 +39,7 @@ void FFEMFXMeshVertexFactory::Copy(const FFEMFXMeshVertexFactory& Other)
 {
     FFEMFXMeshVertexFactory* VertexFactory = this;
     const FDataType* DataCopy = &Other.Data;
-    ENQUEUE_RENDER_COMMAND(FFEMFXMeshVertexFactoryCopyData)(
-        [VertexFactory, DataCopy](FRHICommandListImmediate& RHICmdList)
+    ENQUEUE_RENDER_COMMAND(FFEMFXMeshVertexFactoryCopyData)([VertexFactory, DataCopy](FRHICommandListImmediate& RHICmdList)
     {
         VertexFactory->Data = *DataCopy;
     });
@@ -151,31 +48,40 @@ void FFEMFXMeshVertexFactory::Copy(const FFEMFXMeshVertexFactory& Other)
 
 void FFEMFXMeshVertexFactory::InitRHI()
 {
+    // SetPrimitiveIdStreamIndex(EVertexInputStreamType::Default, 0);
+    // SetPrimitiveIdStreamIndex(EVertexInputStreamType::PositionOnly, 0);
+    // SetPrimitiveIdStreamIndex(EVertexInputStreamType::PositionAndNormalOnly, 0);
+
     // If the vertex buffer containing position is not the same vertex buffer containing the rest of the data,
     // then initialize PositionStream and PositionDeclaration.
     if (true)//Data.PositionComponent.VertexBuffer != Data.TangentBasisComponents[0].VertexBuffer)
     {
         FVertexDeclarationElementList PositionOnlyStreamElements;
-        PositionOnlyStreamElements.Add(AccessPositionStreamComponent(Data.PositionComponent, 0));
-        PositionOnlyStreamElements.Add(AccessPositionStreamComponent(Data.BaryPosOffsetIdComponent, 16));
-        PositionOnlyStreamElements.Add(AccessPositionStreamComponent(Data.BaryPosBaseIdComponent, 17));
+        PositionOnlyStreamElements.Add(AccessStreamComponent(Data.PositionComponent, 0, EVertexInputStreamType::PositionOnly));
+        PositionOnlyStreamElements.Add(AccessStreamComponent(Data.BaryPosOffsetIdComponent, 16, EVertexInputStreamType::PositionOnly));
+        PositionOnlyStreamElements.Add(AccessStreamComponent(Data.BaryPosBaseIdComponent, 17, EVertexInputStreamType::PositionOnly));
 
-        InitPositionDeclaration(PositionOnlyStreamElements);
+        InitDeclaration(PositionOnlyStreamElements, EVertexInputStreamType::PositionOnly);
     }
 
     FVertexDeclarationElementList Elements;
-    if (Data.PositionComponent.VertexBuffer != NULL)
+    if (Data.PositionComponent.VertexBuffer)
     {
         Elements.Add(AccessStreamComponent(Data.PositionComponent, 0));
     }
 
     // only tangent,normal are used by the stream. the binormal is derived in the shader
-    uint8 TangentBasisAttributes[2] = { 1, 2 };
     for (int32 AxisIndex = 0; AxisIndex < 2; AxisIndex++)
     {
-        if (Data.TangentBasisComponents[AxisIndex].VertexBuffer != NULL)
+        // Only tangent (X) and normal (Z) are used by the stream; binormal is derived in the shader.
+        if (Data.TangentBasisComponents[0].VertexBuffer) // TangentX
         {
-            Elements.Add(AccessStreamComponent(Data.TangentBasisComponents[AxisIndex], TangentBasisAttributes[AxisIndex]));
+            Elements.Add(AccessStreamComponent(Data.TangentBasisComponents[0], 1)); // TEXCOORD1
+        }
+
+        if (Data.TangentBasisComponents[1].VertexBuffer) // TangentZ
+        {
+            Elements.Add(AccessStreamComponent(Data.TangentBasisComponents[1], 2)); // TEXCOORD2
         }
     }
 
@@ -194,7 +100,7 @@ void FFEMFXMeshVertexFactory::InitRHI()
 
     if (Data.TextureCoordinates.Num())
     {
-        const int32 BaseTexCoordAttribute = 4;
+        constexpr int32 BaseTexCoordAttribute = 4;
         for (int32 CoordinateIndex = 0; CoordinateIndex < Data.TextureCoordinates.Num(); CoordinateIndex++)
         {
             Elements.Add(AccessStreamComponent(
@@ -245,8 +151,13 @@ FVertexFactoryShaderParameters* FFEMFXMeshVertexFactory::ConstructShaderParamete
         return new FFEMFXMeshVertexFactoryShaderParameters();
     }
 
-    return NULL;
+    return nullptr;
 }
 
 // Implement vertex factory, proving shader file and options.
+
+// Implement vertex factory, proving shader file and options.
+
+// IMPLEMENT_VERTEX_FACTORY_TYPE(FFEMFXMeshVertexFactory, "/Plugin/FEM/Shaders/Private/FEMFXMeshVertexFactory.ush", true, true, true, false, true);
+
 IMPLEMENT_VERTEX_FACTORY_TYPE(FFEMFXMeshVertexFactory, "/Plugin/FEM/Private/FEMFXMeshVertexFactory.ush", true, true, true, false, true);

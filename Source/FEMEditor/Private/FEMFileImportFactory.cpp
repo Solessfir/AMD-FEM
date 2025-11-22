@@ -3,14 +3,12 @@
 // Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 //---------------------------------------------------------------------------------------
-#include "FEMEditorPCH.h"
-#include "FEMFileImportFactory.h"
 
+#include "FEMFileImportFactory.h"
 
 FEMFileImportFactory::FEMFileImportFactory()
 {
 }
-
 
 FEMFileImportFactory::~FEMFileImportFactory()
 {
@@ -154,79 +152,78 @@ void FEMv1_0::ImportFEMFile(const FEMFileImportInputs* inputStruct)
 			FMeshSection section;
 
 			TArray<TSharedPtr<FJsonValue>> assignedTetFace = JsonSection->GetArrayField("AssignedTetFaceBuffer");
-			for (int i = 0; i < assignedTetFace.Num(); i++)
+			for (int j = 0; j < assignedTetFace.Num(); j++)
 			{
-				section.AssignedTetFace.Add(assignedTetFace[i]->AsNumber());
+				section.AssignedTetFace.Add(assignedTetFace[j]->AsNumber());
 			}
 
 			TArray<TSharedPtr<FJsonValue>> barycentrics = JsonSection->GetArrayField("BarycentricCoordsBuffer");
-			for (int i = 0; i < barycentrics.Num(); i++)
+			for (int j = 0; j < barycentrics.Num(); j++)
 			{
-				section.Barycentrics.Add(barycentrics[i]->AsNumber());
+				section.Barycentrics.Add(barycentrics[j]->AsNumber());
 			}
 
 			TArray<TSharedPtr<FJsonValue>> barycentricsPosIds = JsonSection->GetArrayField("BarycentricPosIds");
-			for (int i = 0; i < barycentricsPosIds.Num(); i++)
+			for (int j = 0; j < barycentricsPosIds.Num(); j++)
 			{
-				section.BarycentricsPosIds.Add(barycentricsPosIds[i]->AsNumber());
+				section.BarycentricsPosIds.Add(barycentricsPosIds[j]->AsNumber());
 			}
 
 			TArray<TSharedPtr<FJsonValue>> tetAssignment = JsonSection->GetArrayField("TetAssignmentBuffer");
-			for (int i = 0; i < tetAssignment.Num(); i++)
+			for (int j = 0; j < tetAssignment.Num(); j++)
 			{
-				section.TetAssignment.Add(tetAssignment[i]->AsNumber());
+				section.TetAssignment.Add(tetAssignment[j]->AsNumber());
 			}
 
 			TArray<TSharedPtr<FJsonValue>> vertColor = JsonSection->GetArrayField("ColorBuffer");
-			for (int i = 0; i < vertColor.Num(); i++)
+			for (int j = 0; j < vertColor.Num(); j++)
 			{
-				section.VertexColor.Add(vertColor[i]->AsNumber());
+				section.VertexColor.Add(vertColor[j]->AsNumber());
 			}
 
 			TArray<TSharedPtr<FJsonValue>> vertNormal = JsonSection->GetArrayField("NormalBuffer");
-			for (int i = 0; i < vertNormal.Num(); i++)
+			for (int j = 0; j < vertNormal.Num(); j++)
 			{
-				section.VertexNormal.Add(vertNormal[i]->AsNumber());
+				section.VertexNormal.Add(vertNormal[j]->AsNumber());
 			}
 
 			TArray<TSharedPtr<FJsonValue>> vertPos = JsonSection->GetArrayField("PositionBuffer");
-			for (int i = 0; i < vertPos.Num(); i++)
+			for (int j = 0; j < vertPos.Num(); j++)
 			{
-				section.VertexPosition.Add(vertPos[i]->AsNumber());
+				section.VertexPosition.Add(vertPos[j]->AsNumber());
 			}
 
 			TArray<TSharedPtr<FJsonValue>> vertTangent = JsonSection->GetArrayField("TangentBuffer");
-			for (int i = 0; i < vertTangent.Num(); i++)
+			for (int j = 0; j < vertTangent.Num(); j++)
 			{
-				section.VertexTangent.Add(vertTangent[i]->AsNumber());
+				section.VertexTangent.Add(vertTangent[j]->AsNumber());
 			}
 
 			TArray<TSharedPtr<FJsonValue>> vertUVs = JsonSection->GetArrayField("UVsBuffer");
-			for (int i = 0; i < vertUVs.Num(); i++)
+			for (int j = 0; j < vertUVs.Num(); j++)
 			{
-				section.VertexUVs.Add(vertUVs[i]->AsNumber());
+				section.VertexUVs.Add(vertUVs[j]->AsNumber());
 			}
 
 			TArray<TSharedPtr<FJsonValue>> shardVertexIds = JsonSection->GetArrayField("ShardIds");
-			for (int i = 0; i < shardVertexIds.Num(); i++)
+			for (int j = 0; j < shardVertexIds.Num(); j++)
 			{
-				section.ShardVertexIds.Add(shardVertexIds[i]->AsNumber());
+				section.ShardVertexIds.Add(shardVertexIds[j]->AsNumber());
 			}
 
 			TArray<TSharedPtr<FJsonValue>> triangles = JsonSection->GetArrayField("Triangles");
-			for (int i = 0; i < triangles.Num(); i++)
+			for (int j = 0; j < triangles.Num(); j++)
 			{
-				section.Triangles.Add(triangles[i]->AsNumber());
+				section.Triangles.Add(triangles[j]->AsNumber());
 			}
 
 			TArray<TSharedPtr<FJsonValue>> centroids = JsonSection->GetArrayField("Centroids");
-			for (int i = 0; i < centroids.Num(); i++)
+			for (int j = 0; j < centroids.Num(); j++)
 			{
-				section.Centroids.Add(centroids[i]->AsNumber());
+				section.Centroids.Add(centroids[j]->AsNumber());
 			}
 
 			section.NumberOfShardVertices = JsonSection->GetIntegerField("NumberOfShards");
-
 			component.MeshSections.Add(section);
 		}
 

@@ -3,37 +3,28 @@
 // Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 //---------------------------------------------------------------------------------------
-#include "FEMEditorPCH.h"
+
 #include "FEMFactory.h"
 #include "FEMFileImportFactory.h"
-
 #include "FEMResource.h"
 #include "FEMFXMeshComponent.h"
 #include "FEMActor.h"
 #include "FEMMesh.h"
-
 #include "Editor.h"
-#include "ActorFactories/ActorFactoryEmptyActor.h"
 #include "AssetRegistryModule.h"
-#include "BlueprintEditorUtils.h"
-#include "ObjectTools.h"
 #include "PackageTools.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "AssetSelection.h"
 #include "FEMActorFactory.h"
-#include "ConstructorHelpers.h"
 #include "FEMFXTetMeshParameters.h"
 #include "FEMTetMeshParametersFactory.h"
-#include "AutomationEditorPromotionCommon.h"
 #include "Factories/FbxFactory.h"
 #include "Misc/FeedbackContext.h"
-
 #include "Dom/JsonObject.h"
-#include "Dom/JsonValue.h"
 #include "Serialization/JsonReader.h"
-#include "FileHelper.h"
-
-#include "Developer/AssetTools/Public/AssetTypeCategories.h"
+#include "AssetTypeCategories.h"
+#include "Misc/FileHelper.h"
+#include "Serialization/JsonSerializer.h"
 
 UFEMFactory::UFEMFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -140,17 +131,17 @@ UObject* UFEMFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FNam
 			if (it->TetIds.Num() > 0)
 				meshComponent->MeshParameters.Add(it->Name);
 
-			UPackage* package = PackageTools::LoadPackage(*it->Name);
+			UPackage* package = UPackageTools::LoadPackage(*it->Name);
 
 			UFEMFXTetMeshParameters* material = Cast<UFEMFXTetMeshParameters>(StaticLoadObject(UFEMFXTetMeshParameters::StaticClass(), package, *it->Name));
 			if (!material)
 			{
 				UFEMTetMeshParametersFactory* factory = NewObject<UFEMTetMeshParametersFactory>();
 				const FString PackageName = "/Game/FEM/FEMMaterials/" + it->Name;
-				package = CreatePackage(NULL, *PackageName);
+				package = CreatePackage(*PackageName);
 				EObjectFlags objectFlags = RF_Public | RF_Standalone;
 
-				material = Cast<UFEMFXTetMeshParameters>(factory->FactoryCreateNew(UFEMFXTetMeshParameters::StaticClass(), package, *it->Name, objectFlags, NULL, Warn, NAME_None));
+				material = Cast<UFEMFXTetMeshParameters>(factory->FactoryCreateNew(UFEMFXTetMeshParameters::StaticClass(), package, *it->Name, objectFlags, nullptr, Warn, NAME_None));
 				FAssetRegistryModule::AssetCreated(material);
 				material->MarkPackageDirty();
 			}
@@ -169,7 +160,7 @@ UObject* UFEMFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FNam
 
 		for (auto it = Resource->ComponentResources[i].FBXFiles.CreateIterator(); it; it++)
 		{
-			UPackage* package = PackageTools::LoadPackage(*it);
+			UPackage* package = UPackageTools::LoadPackage(*it);
 
 			UStaticMesh* Mesh = Cast<UStaticMesh>(StaticLoadObject(UStaticMesh::StaticClass(), package, **it));
 			if (!Mesh)
@@ -199,7 +190,7 @@ UObject* UFEMFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FNam
 			FString name = MakeUniqueObjectName(InParent, UFEMMesh::StaticClass(), InName).ToString();
 			FString packageName = InParent->GetPathName();
 
-			UPackage* package = CreatePackage(NULL, *(packageName + name));
+			UPackage* package = CreatePackage(*(packageName + name));
 			EObjectFlags objectFlags = RF_Public | RF_Standalone;
 
 			UFEMMesh* mesh = Cast<UFEMMesh>(NewObject<UFEMMesh>(package, *name, objectFlags));
@@ -215,15 +206,15 @@ UObject* UFEMFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FNam
 
 				if (meshComponent->staticMeshes.Num() > 0)
 				{
-					for (int i = 0; i < meshComponent->staticMeshes.Num(); ++i)
+					for (int j = 0; j < meshComponent->staticMeshes.Num(); ++j)
 					{
-						UStaticMesh* staticMesh = meshComponent->staticMeshes[i];
+						UStaticMesh* staticMesh = meshComponent->staticMeshes[j];
 
-						FFEMFXMeshSection* meshSection = mesh->CreateMeshSection(staticMesh, meshComponent->GetTetMeshBuffer(), meshComponent->GetBvHierarchy(), i);
-						meshSection->MaterialIndex = i;
+						FFEMFXMeshSection* meshSection = mesh->CreateMeshSection(staticMesh, meshComponent->GetTetMeshBuffer(), meshComponent->GetBvHierarchy(), j);
+						meshSection->MaterialIndex = j;
 
 						UMaterialInterface* material = staticMesh->GetMaterial(0);
-						meshComponent->SetMaterial(i, material);
+						meshComponent->SetMaterial(j, material);
 
 						mesh->GetTetMesh()->UpdateTetMesh(meshComponent->GetTetMeshBuffer());
 					}
@@ -252,7 +243,10 @@ UObject* UFEMFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FNam
 		Cast<AFEMActor>(RootActorContainer)->MeshComponents.Add(meshComponent);
 	}
 
-	Blueprint = FKismetEditorUtilities::CreateBlueprintFromActor(InParent->GetName(), RootActorContainer, false, true);
+	FKismetEditorUtilities::FCreateBlueprintFromActorParams Params;
+	Params.bReplaceActor = false;
+	Params.bKeepMobility = true;
+	Blueprint = FKismetEditorUtilities::CreateBlueprintFromActor(InParent->GetName(), RootActorContainer, Params);
 
 	if (Blueprint)
 	{

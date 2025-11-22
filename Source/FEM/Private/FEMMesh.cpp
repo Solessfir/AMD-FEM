@@ -3,22 +3,16 @@
 // Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 //---------------------------------------------------------------------------------------
+
 #include "FEMMesh.h"
 #include "AMD_FEMFX.h"
-#include "PositionVertexBuffer.h"
 #include "FEMFXVectormath.h"
 #include "FEMFXMathConversion.h"
 #include "RawIndexBuffer.h"
-#include "ColorVertexBuffer.h"
-#include "StaticMeshVertexBuffer.h"
 #include "Engine/StaticMesh.h"
 #include "FEMMeshTypes.h"
-#include "WoodPanelCommon.h"
 #include "ProceduralMeshHelper.h"
-#include "FEMConnectivity.h"
-#include "AMD_FEMFX.h"
-#include "IFEM.h"
-
+#include "FEM.h"
 #include <algorithm>
 
 UFEMMesh::UFEMMesh(const FObjectInitializer& ObjectInitializer)
@@ -413,10 +407,11 @@ FFEMFXMeshSection* UFEMMesh::CreateMeshSection(UStaticMesh* StaticMesh, AMD::FmT
 	TetMesh->FEMMeshTetFractureNewRenderFaces.Reset();
 	TetMesh->FEMMeshTetFractureNewRenderFaces.AddDefaulted(FmGetNumTets(*tetMeshBuffer));
 
-	FPositionVertexBuffer* posVertBuffer = &StaticMesh->RenderData->LODResources[0].PositionVertexBuffer;
-	FRawStaticIndexBuffer* indexBuffer = &StaticMesh->RenderData->LODResources[0].IndexBuffer;
-	FStaticMeshVertexBuffer* meshVertBuffer = &StaticMesh->RenderData->LODResources[0].VertexBuffer;
-	FColorVertexBuffer* colorVertexBuffer = &StaticMesh->RenderData->LODResources[0].ColorVertexBuffer;
+	FStaticMeshLODResources& LOD = StaticMesh->GetRenderData()->LODResources[0];
+	FPositionVertexBuffer* posVertBuffer = &LOD.VertexBuffers.PositionVertexBuffer;
+	FRawStaticIndexBuffer* indexBuffer = &LOD.IndexBuffer;
+	FStaticMeshVertexBuffer* meshVertBuffer = &LOD.VertexBuffers.StaticMeshVertexBuffer;
+	FColorVertexBuffer* colorVertexBuffer = &LOD.VertexBuffers.ColorVertexBuffer;
 
 	FBox BoundsBox;
 	BoundsBox.Min = FVector(0, 0, 0);
@@ -789,7 +784,7 @@ AMD::FmTetMeshBuffer* UFEMMesh::LoadTempBuffer(AMD::FmVector3* RestPositions, in
         &bounds,
         fractureGroupCounts,
         tetFractureGroupIds,
-        vertIncidentTets, TetVertIds, NULL,
+        vertIncidentTets, TetVertIds, nullptr,
         NumVerts, NumTets, FractureEnabled);
 
     AMD::FmTetMeshBufferSetupParams tetMeshParams;

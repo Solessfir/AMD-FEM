@@ -9,7 +9,6 @@
 #include <vector>
 #include <assert.h>
 
-
 static inline void AddIncidentTetToSet(std::vector<unsigned int>& vertTetIds, unsigned int tetId)
 {
     for (std::vector<unsigned int>::iterator it = vertTetIds.begin(); it != vertTetIds.end(); it++)

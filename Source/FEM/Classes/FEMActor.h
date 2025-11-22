@@ -3,12 +3,13 @@
 // Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 //---------------------------------------------------------------------------------------
+
 #pragma once
+
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "FEMCommon.h"
 #include "FEMResource.h"
-
 #include "FEMActor.generated.h"
 
 //class UFEMResource;

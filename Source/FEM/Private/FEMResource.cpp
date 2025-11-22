@@ -3,13 +3,11 @@
 // Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 //---------------------------------------------------------------------------------------
+
 #include "FEMResource.h"
 #include "FEMFXMeshComponent.h"
 #include "AMD_FEMFX.h"
 #include "FEMCommon.h"
-#include "PartitionMesh.h"
-#include "FEMConnectivity.h"
-
 #include <vector>
 
 static inline void AddIncidentTetToSetNew(std::vector<unsigned int>& vertTetIds, unsigned int tetId)

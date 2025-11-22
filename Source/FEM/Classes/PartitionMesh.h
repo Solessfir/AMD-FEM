@@ -3,6 +3,7 @@
 // Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 //---------------------------------------------------------------------------------------
+
 #pragma once
 
 #define PARTITION_MESH 0
@@ -11,7 +12,6 @@
 #include "AMD_FEMFX.h"
 #include <vector>
 #include "metisbin.h"
-
 
 struct PartitionMeshInput
 {
@@ -42,7 +42,7 @@ static int PartitionMesh(
 	metisMesh.ncon = 0;
 	metisMesh.eptr = new idx_t[meshInput.numTets + 1];  // start of node indices of element
 	metisMesh.eind = new idx_t[meshInput.numTets * 4];  // all element node indices
-	metisMesh.ewgt = NULL;
+	metisMesh.ewgt = nullptr;
 
 	AMD::uint nodeIdx = 0;
 	for (AMD::uint elemIdx = 0; elemIdx < meshInput.numTets; elemIdx++)
@@ -81,7 +81,7 @@ static int PartitionMesh(
 	metisOptions[METIS_OPTION_NUMBERING] = 0;
 
 	int metisStatus = METIS_PartMeshNodal(&metisMesh.ne, &metisMesh.nn, metisMesh.eptr, metisMesh.eind,
-		NULL, NULL, &metisNumPartitions, NULL, metisOptions, &metisObjVal,
+		nullptr, nullptr, &metisNumPartitions, nullptr, metisOptions, &metisObjVal,
 		metisElemPartitions, metisNodePartitions);
 
 	// Find size of each partition

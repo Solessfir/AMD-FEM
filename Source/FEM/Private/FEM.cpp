@@ -1,28 +1,19 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "Modules/ModuleManager.h"
-#include "IFEM.h"
-
+#include "FEM.h"
+#include "Interfaces/IPluginManager.h"
 
 DEFINE_LOG_CATEGORY(FEMLog);
 
-
-class FFEM : public IFEM
+void FFEMModule::StartupModule()
 {
-	/** IModuleInterface implementation */
-	virtual void StartupModule() override
-	{
+	const FString PluginDir = IPluginManager::Get().FindPlugin(TEXT("FEM"))->GetBaseDir();
+	const FString PluginShaderDir = FPaths::Combine(PluginDir, TEXT("Shaders"));
+	AddShaderSourceDirectoryMapping(TEXT("/Plugin/FEM"), PluginShaderDir);
+}
 
-	}
+void FFEMModule::ShutdownModule()
+{
+}
 
-	virtual void ShutdownModule() override
-	{
-
-	}
-
-private:
-
-
-};
-
-IMPLEMENT_MODULE( FFEM, FEM)
+IMPLEMENT_MODULE(FFEMModule, FEM)

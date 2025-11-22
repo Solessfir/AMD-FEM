@@ -6,7 +6,6 @@
 
 #include "PreProcessedMesh.h"
 
-
 APreProcessedMeshHelper::APreProcessedMeshHelper(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {

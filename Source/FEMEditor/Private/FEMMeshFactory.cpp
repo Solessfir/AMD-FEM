@@ -1,27 +1,17 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "FEMEditorPCH.h"
 #include "FEMMeshFactory.h"
 #include "FEMMesh.h"
-
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SWidget.h"
 #include "Widgets/SCompoundWidget.h"
 #include "SlateOptMacros.h"
 #include "IDetailsView.h"
-#include "SBox.h"
-#include "SBorder.h"
-#include "SButton.h"
-#include "SBoxPanel.h"
 #include "EditorStyleSet.h"
 #include "PropertyEditorModule.h"
-#include "ModuleManager.h"
-#include "SUniformGridPanel.h"
-#include "IMainFrameModule.h"
-#include "SlateApplication.h"
 #include "AssetTypeCategories.h"
-
 #include "CoreMinimal.h"
+#include "Interfaces/IMainFrameModule.h"
 #include "UObject/UObjectGlobals.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/UObjectGlobals.h"
@@ -30,15 +20,13 @@
 #include "UObject/Object.h"
 #include "UObject/Class.h"
 #include "UObject/UnrealType.h"
-#include "ConfigCacheIni.h"
+#include "Widgets/Layout/SUniformGridPanel.h"
 
 #define LOCTEXT_NAMESPACE "FEMMeshFactory"
-
 
 UFEMMeshImportData::UFEMMeshImportData(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-
 }
 
 void UFEMMeshImportData::CopyFrom(UFEMMeshImportData* Other)
@@ -62,7 +50,7 @@ void UFEMMeshImportData::LoadOptions()
 {
 	int32 PortFlags = 0;
 
-	for (UProperty* Property = GetClass()->PropertyLink; Property; Property = Property->PropertyLinkNext)
+	for (FProperty* Property = GetClass()->PropertyLink; Property; Property = Property->PropertyLinkNext)
 	{
 		if (!Property->HasAnyPropertyFlags(CPF_Config))
 		{
@@ -76,7 +64,7 @@ void UFEMMeshImportData::LoadOptions()
 
 		const FString& PropFileName = GEditorPerProjectIni;
 
-		UArrayProperty* Array = dynamic_cast<UArrayProperty*>(Property);
+		FArrayProperty* Array = CastField<FArrayProperty>(Property);
 		if (Array)
 		{
 			FConfigSection* Sec = GConfig->GetSectionPrivate(*Section, 0, 1, *GEditorPerProjectIni);
@@ -140,7 +128,7 @@ void UFEMMeshImportData::LoadOptions()
 
 				if (bFoundValue)
 				{
-					if (Property->ImportText(*Value, Property->ContainerPtrToValuePtr<uint8>(this, i), PortFlags, this) == NULL)
+					if (Property->ImportText(*Value, Property->ContainerPtrToValuePtr<uint8>(this, i), PortFlags, this) == nullptr)
 					{
 						// this should be an error as the properties from the .ini / .int file are not correctly being read in and probably are affecting things in subtle ways
 						UE_LOG(LogTemp, Error, TEXT("FEMMesh Options LoadOptions (%s): failed for %s in: %s"), *GetPathName(), *Property->GetName(), *Value);
@@ -155,7 +143,7 @@ void UFEMMeshImportData::SaveOptions()
 {
 	int32 PortFlags = 0;
 
-	for (UProperty* Property = GetClass()->PropertyLink; Property; Property = Property->PropertyLinkNext)
+	for (FProperty* Property = GetClass()->PropertyLink; Property; Property = Property->PropertyLinkNext)
 	{
 		if (!Property->HasAnyPropertyFlags(CPF_Config))
 		{
@@ -167,7 +155,7 @@ void UFEMMeshImportData::SaveOptions()
 		const bool bIsPropertyInherited = Property->GetOwnerClass() != GetClass();
 		UObject* SuperClassDefaultObject = GetClass()->GetSuperClass()->GetDefaultObject();
 
-		UArrayProperty* Array = dynamic_cast<UArrayProperty*>(Property);
+		FArrayProperty* Array = CastField<FArrayProperty>(Property);
 		if (Array)
 		{
 			FConfigSection* Sec = GConfig->GetSectionPrivate(*Section, 1, 0, *GEditorPerProjectIni);

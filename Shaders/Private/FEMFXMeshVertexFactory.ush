@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LocalVertexFactory.usf: Local vertex factory shader code.
@@ -382,7 +382,7 @@ half3x3 CalcTangentToWorldNoScale(in half3x3 TangentToLocal)
 	LocalToWorld[0] *= InvScale.x;
 	LocalToWorld[1] *= InvScale.y;
 	LocalToWorld[2] *= InvScale.z;
-	return mul(TangentToLocal, LocalToWorld); 
+	return mul(TangentToLocal, LocalToWorld);
 }
 
 /** Converts from vertex factory specific input to a FMaterialVertexParameters, which is used by vertex shader material inputs. */
@@ -462,16 +462,16 @@ FMaterialVertexParameters GetMaterialVertexParameters(FVertexFactoryInput Input,
 		// Then find the point and direction of the spline at this point along
 		float3 SplinePos = SplineEvalPos( SplineStartPos, SplineStartTangent, SplineEndPos, SplineEndTangent, Alpha );
 		float3 SplineDir = SplineEvalDir( SplineStartPos, SplineStartTangent, SplineEndPos, SplineEndTangent, Alpha );
-	
+
 		// Find base frenet frame
 		float3 BaseXVec = normalize( cross(SplineUpDir, SplineDir) );
 		float3 BaseYVec = normalize( cross(SplineDir, BaseXVec) );
-	
+
 		// Offset from the spline, using the frenet frame
 		float2 SliceOffset = lerp(SplineStartOffset, SplineEndOffset, HermiteAlpha);
 		SplinePos += SliceOffset.x * BaseXVec;
 		SplinePos += SliceOffset.y * BaseYVec;
-	
+
 		// Apply roll to frame around spline
 		float UseRoll = lerp(SplineStartRoll, SplineEndRoll, HermiteAlpha);
 		float SinAng, CosAng;
@@ -563,7 +563,7 @@ float4 CalcWorldPosition(float4 Position)
 half3x3 CalcTangentToLocal(FVertexFactoryInput Input)
 {
 	half3x3 Result;
-	
+
 	half3 TangentX = TangentBias(Input.TangentX);
 	half4 TangentZ = TangentBias(Input.TangentZ);
 
@@ -577,7 +577,7 @@ half3x3 CalcTangentToLocal(FVertexFactoryInput Input)
 
 	// derive the binormal by getting the cross product of the normal and tangent
 	half3 TangentY = cross(TangentZ.xyz, TangentX) * TangentZ.w;
-	
+
 	// Recalculate TangentX off of the other two vectors
 	// This corrects quantization error since TangentX was passed in as a quantized vertex input
 	// The error shows up most in specular off of a mesh with a smoothed UV seam (normal is smooth, but tangents vary across the seam)

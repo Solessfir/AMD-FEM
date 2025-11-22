@@ -3,6 +3,7 @@
 // Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 //---------------------------------------------------------------------------------------
+
 #include "FEMFXTetMeshParameters.h"
 
 UFEMFXTetMeshParameters::UFEMFXTetMeshParameters(const FObjectInitializer& ObjectInitializer)
@@ -26,5 +27,4 @@ UFEMFXTetMeshParameters::UFEMFXTetMeshParameters(const FObjectInitializer& Objec
 
 UFEMFXTetMeshParameters::UFEMFXTetMeshParameters()
 {
-
 }

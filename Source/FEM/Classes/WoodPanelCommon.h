@@ -3,6 +3,7 @@
 // Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 //---------------------------------------------------------------------------------------
+
 #pragma once
 
 #define SU_BOX_NUM_FLOATS_PER_VERTEX (3 + 3 + 2)

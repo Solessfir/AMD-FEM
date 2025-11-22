@@ -3,17 +3,13 @@
 // Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 //---------------------------------------------------------------------------------------
-#pragma once
 
+#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "FEMFXMeshComponent.h"
-#include "UnrealType.h"
-#include <vector>
 #include "FEMCommon.h"
-#include "PreProcessedMesh.h"
-//ThirdParty/FEM/FEMFXBeta/amd_femfx/inc/
 #include "FEMFXScene.generated.h"
 
 
