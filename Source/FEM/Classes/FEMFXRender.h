@@ -84,7 +84,7 @@ class FFEMFXMeshVertexFactory : public FVertexFactory
     static void ModifyCompilationEnvironment(const FVertexFactoryShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
     {
         OutEnvironment.SetDefine(TEXT("VF_SUPPORTS_SPEEDTREE_WIND"), TEXT("1"));
-        OutEnvironment.SetDefine(TEXT("VF_SUPPORTS_PRIMITIVE_SCENE_DATA"), 1);
+        // OutEnvironment.SetDefine(TEXT("VF_SUPPORTS_PRIMITIVE_SCENE_DATA"), 1);
     }
 
     static bool ShouldCompilePermutation(const FVertexFactoryShaderPermutationParameters& Parameters)
