@@ -20,7 +20,7 @@ void PreprocessMeshSectionNoFracture(PreprocessedMeshSection& MeshSectionData, c
     const int32* RenderIndices = RenderModel.indices.data();
     int32 NumIndices = RenderModel.indices.size();
 
-    for (int VertIdx = 0; VertIdx < NumVerts; VertIdx++)
+    for (int32 VertIdx = 0; VertIdx < NumVerts; VertIdx++)
     {
         FmVector3 vertPos;
         vertPos.x = RenderVertices[VertIdx].pos[0];
@@ -78,7 +78,7 @@ void PreprocessMeshSectionNoFracture(PreprocessedMeshSection& MeshSectionData, c
 		MeshSectionData.ShardVertexIds.Add(VertIdx);
     }
 
-    for (int i = 0; i < NumIndices; i++)
+    for (int32 i = 0; i < NumIndices; i++)
     {
         MeshSectionData.Triangles.Add(RenderIndices[i]);
     }

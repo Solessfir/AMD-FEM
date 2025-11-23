@@ -3,15 +3,14 @@
 // Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 //---------------------------------------------------------------------------------------
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "FEMFXMeshComponent.h"
+#include "UObject/UnrealType.h"
 #include "FEMCommon.h"
 #include "FEMFXScene.generated.h"
-
 
 class AFEMFXRigidBodyScene;
 class AFEMActor;
@@ -23,42 +22,59 @@ class AFEMFXScene : public AActor
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup Parameters")
 	bool bIsMultiThreaded;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup Parameters")
-	int MaxTetMeshBuffers;
+	int32 MaxTetMeshBuffers;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup Parameters")
-	int MaxTetMeshes;
+	int32 MaxTetMeshes;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup Parameters")
-	int MaxRigidBodies;
+	int32 MaxRigidBodies;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup Parameters")
-	int MaxDistanceContacts;
+	int32 MaxDistanceContacts;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup Parameters")
-	int MaxFractureContacts;
+	int32 MaxFractureContacts;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup Parameters")
-	int MaxVolumeContacts;
+	int32 MaxVolumeContacts;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup Parameters")
-	int MaxVolumeContactVerts;
+	int32 MaxVolumeContactVerts;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup Parameters")
-	int MaxObjectPairTriPairs;
+	int32 MaxObjectPairTriPairs;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup Parameters")
-	int MaxObjectPairVolContactVerts;
+	int32 MaxObjectPairVolContactVerts;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup Parameters")
-	int MaxGlueConstraints;
+	int32 MaxGlueConstraints;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup Parameters")
-	int MaxPlaneConstraints;
+	int32 MaxPlaneConstraints;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup Parameters")
-	int MaxRigidBodyAngleConstraints;
+	int32 MaxRigidBodyAngleConstraints;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup Parameters")
-	int MaxDeformationConstraints;
+	int32 MaxDeformationConstraints;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup Parameters")
-	int MaxBroadPhasePairs;
+	int32 MaxBroadPhasePairs;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup Parameters")
-	int MaxUserBroadPhasePairs;
+	int32 MaxUserBroadPhasePairs;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup Parameters")
-	int MaxVerts;
+	int32 MaxVerts;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup Parameters")
-	int MaxJacobianSubmats;
+	int32 MaxJacobianSubmats;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Setup Parameters")
-	int NumWorkerThreads;
+	int32 NumWorkerThreads;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FEM")
 	FString Name;
@@ -117,31 +133,31 @@ class AFEMFXScene : public AActor
     void CreateSleepingGroup(const TArray<AActor*>& Actors);
 
     UFUNCTION(BlueprintCallable, Category = "FEM")
-    void SetGroupsCanCollide(int i, int j, bool canCollide);
+    void SetGroupsCanCollide(int32 i, int32 j, bool canCollide);
 
     UFUNCTION(BlueprintNativeEvent, CallInEditor, BlueprintCallable, Category = "FEM")
 	void ResetScene();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FEM")
-		FVector minPlaneConstraint;
+	FVector minPlaneConstraint;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FEM")
-		FVector maxPlaneConstraint;
+	FVector maxPlaneConstraint;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FEMCollision")
-		float MaxCollisionDistanceContacts;
+	float MaxCollisionDistanceContacts;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FEMCollision")
-		float MaxDistanceContactsPerObjectPair;
+	float MaxDistanceContactsPerObjectPair;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FEMCollision")
-		float MaxCollisionVolumeContacts;
+	float MaxCollisionVolumeContacts;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FEMCollision")
-		float MaxVolumeContactsPerObjectPair;
+	float MaxVolumeContactsPerObjectPair;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FEMCollision")
-		float MinContactRelativeVelocity;
+	float MinContactRelativeVelocity;
 
 
 	/*bool IsProcessed(FString name);*/
@@ -159,15 +175,13 @@ class AFEMFXScene : public AActor
     bool IsConditionChecked(FString name);
 
 private:
-	
 	bool bIsInitialized;
 
 	size_t SceneBufferNumBytes;
+	
 	uint8_t* SceneBufferMemory;
 
 	AMD::FmScene* AMDFXSceneBuffer;
-
-	
 
 	/** Brought Over from Eric's FEMFXScene Actor */
 	float frameTime;
@@ -181,5 +195,4 @@ private:
     void UpdateRenderingDataFromFracture();
 	void UpdateSimData();
 	/** END Brought over from Eric's FEMFXScene Actor */
-
 };

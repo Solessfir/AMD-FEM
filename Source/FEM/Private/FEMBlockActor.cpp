@@ -5,7 +5,6 @@
 //---------------------------------------------------------------------------------------
 #include "FEMBlockActor.h"
 
-AFEMBlockActor::AFEMBlockActor(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+AFEMBlockActor::AFEMBlockActor()
 {
 }

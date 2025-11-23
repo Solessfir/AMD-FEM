@@ -8,21 +8,13 @@
 
 #include "CoreMinimal.h"
 #include "FEMActor.h"
-#include "FEMFXMeshComponent.h"
-#include "FEMCommon.h"
-#include "RenderTetAssignment.h"
-#include <vector>
 #include "FEMBlockActor.generated.h"
-
-class AFEMFXScene;
 
 UCLASS(BlueprintType, Category="FEM")
 class AFEMBlockActor : public AFEMActor
 {
-	GENERATED_UCLASS_BODY()
-
-private:
+	GENERATED_BODY()
 
 public:
-
+	AFEMBlockActor();
 };

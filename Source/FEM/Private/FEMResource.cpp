@@ -5,7 +5,6 @@
 //---------------------------------------------------------------------------------------
 
 #include "FEMResource.h"
-#include "FEMFXMeshComponent.h"
 #include "AMD_FEMFX.h"
 #include "FEMCommon.h"
 #include <vector>

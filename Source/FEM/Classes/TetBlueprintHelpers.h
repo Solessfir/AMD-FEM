@@ -22,7 +22,7 @@ struct FTetVertNeighbors
 {
 	GENERATED_USTRUCT_BODY()
 
-		FTetVertNeighbors()
+	FTetVertNeighbors()
 	{
 		NumAdjacentVerts = 0;
 		IncidentTetsStart = 0;
@@ -32,13 +32,13 @@ struct FTetVertNeighbors
 	//FTetVertNeighbors(const AMD::FmVertNeighbors* vertNeighbors);
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
-		int NumAdjacentVerts;
+	int32 NumAdjacentVerts;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
-		int IncidentTetsStart;
+	int32 IncidentTetsStart;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
-		int NumIncidentTets;
+	int32 NumIncidentTets;
 };
 
 USTRUCT(BlueprintType)
@@ -46,7 +46,7 @@ struct FTetVertex
 {
 	GENERATED_USTRUCT_BODY()
 
-		FTetVertex()
+	FTetVertex()
 	{
 		RestPos = FVector(0.0f);
 		Pos = FVector(0.0f);
@@ -61,28 +61,28 @@ struct FTetVertex
 	//FTetVertex(const AMD::FmVert* vert);
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
-		FVector RestPos;
+	FVector RestPos;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
-		FVector Pos;
+	FVector Pos;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
-		FVector Velocity;
+	FVector Velocity;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
-		FVector ExtForce;
+	FVector ExtForce;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
-		FVector KinematicVel;
+	FVector KinematicVel;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
-		FTetVertNeighbors Neighbors;
+	FTetVertNeighbors Neighbors;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
-		float Mass;
+	float Mass;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
-		int Index0;
+	int Index0;
 };
 
 USTRUCT(BlueprintType)

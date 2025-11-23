@@ -1,26 +1,11 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "FEMMeshFactory.h"
 #include "FEMMesh.h"
-#include "Widgets/DeclarativeSyntaxSupport.h"
-#include "Widgets/SWidget.h"
-#include "Widgets/SCompoundWidget.h"
 #include "SlateOptMacros.h"
-#include "IDetailsView.h"
-#include "EditorStyleSet.h"
-#include "PropertyEditorModule.h"
-#include "AssetTypeCategories.h"
-#include "CoreMinimal.h"
-#include "Interfaces/IMainFrameModule.h"
-#include "UObject/UObjectGlobals.h"
-#include "UObject/ObjectMacros.h"
-#include "UObject/UObjectGlobals.h"
-#include "UObject/UObjectBaseUtility.h"
-#include "UObject/UObjectHash.h"
-#include "UObject/Object.h"
-#include "UObject/Class.h"
-#include "UObject/UnrealType.h"
 #include "Widgets/Layout/SUniformGridPanel.h"
+#include "Interfaces/IMainFrameModule.h"
+#include "AssetTypeCategories.h"
 
 #define LOCTEXT_NAMESPACE "FEMMeshFactory"
 

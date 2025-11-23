@@ -27,6 +27,7 @@ THE SOFTWARE.
 #include <stddef.h>
 #include <stdint.h>
 #include <algorithm>
+#include "FEMFXVectorMath.h"
 
 #ifdef WIN32
 #define FM_FORCE_INLINE __forceinline

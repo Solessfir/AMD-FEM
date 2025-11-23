@@ -51,6 +51,7 @@ static inline AMD::FmMatrix3 ConvertUnrealRotatorToFEMMatrix(FRotator rotator)
 	Rotation.col0 = XVector;
 	Rotation.col1 = YVector;
 	Rotation.col2 = ZVector;
+	return Rotation;
 }
 
 static inline AMD::FmQuat ConvertUnrealQuaternionToFEM(FQuat quaternion)

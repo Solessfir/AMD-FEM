@@ -1,20 +1,39 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "DynamicMeshBuilder.h"
 #include "FEMMeshTypes.h"
-#include "MeshMaterialShader.h"
+#include "Materials/Material.h"
+#include "LocalVertexFactory.h"
 
-struct FFEMFXMeshBatchElementParams;
+BEGIN_GLOBAL_SHADER_PARAMETER_STRUCT(FFEMFXMeshVertexFactoryUniformShaderParameters, )
+SHADER_PARAMETER(FIntVector4, VertexFetch_Parameters)
+SHADER_PARAMETER(uint32, LODLightmapDataIndex)
+SHADER_PARAMETER_SRV(Buffer<float2>, VertexFetch_TexCoordBuffer)
+SHADER_PARAMETER_SRV(Buffer<float>, VertexFetch_PositionBuffer)
+SHADER_PARAMETER_SRV(Buffer<float4>, VertexFetch_PackedTangentsBuffer)
+SHADER_PARAMETER_SRV(Buffer<float4>, VertexFetch_ColorComponentsBuffer)
+END_GLOBAL_SHADER_PARAMETER_STRUCT()
+
+extern TUniformBufferRef<FFEMFXMeshVertexFactoryUniformShaderParameters> CreateFEMFXMeshVFUniformBuffer(
+    const class FFEMFXMeshVertexFactory* VertexFactory,
+    uint32 LODLightmapDataIndex,
+    class FColorVertexBuffer* OverrideColorVertexBuffer,
+    int32 BaseVertexIndex);
 
 /** Vertex Factory */
-class FFEMFXMeshVertexFactory : public FVertexFactory
+class FEM_API FFEMFXMeshVertexFactory : public FVertexFactory
 {
     DECLARE_VERTEX_FACTORY_TYPE(FFEMFXMeshVertexFactory);
 
-    explicit FFEMFXMeshVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
-        : FVertexFactory(InFeatureLevel)
+public:
+
+    FFEMFXMeshVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
+        : FVertexFactory(InFeatureLevel), ColorStreamIndex(-1)
     {
+        bSupportsManualVertexFetch = true;
     }
 
     struct FDataType
@@ -34,11 +53,26 @@ class FFEMFXMeshVertexFactory : public FVertexFactory
         /** The stream to read the vertex color from. */
         FVertexStreamComponent ColorComponent;
 
+        FRHIShaderResourceView* PositionComponentSRV = nullptr;
+
+        FRHIShaderResourceView* TangentsSRV = nullptr;
+
+        /** A SRV to manually bind and load TextureCoordinates in the Vertexshader. */
+        FRHIShaderResourceView* TextureCoordinatesSRV = nullptr;
+
+        /** A SRV to manually bind and load Colors in the Vertexshader. */
+        FRHIShaderResourceView* ColorComponentsSRV = nullptr;
+
         /** The stream to read the shard vertex id from. */
         FVertexStreamComponent BaryPosOffsetIdComponent;
 
         /** The stream to read the barycentric position base id from. */
         FVertexStreamComponent BaryPosBaseIdComponent;
+
+        int LightMapCoordinateIndex = -1;
+        int NumTexCoords = -1;
+        uint32 ColorIndexMask = ~0u;
+        // uint32 LODLightmapDataIndex = 0;
     };
 
     /** Init function that should only be called on render thread. */
@@ -69,28 +103,21 @@ class FFEMFXMeshVertexFactory : public FVertexFactory
         }
         else
         {
-            ENQUEUE_RENDER_COMMAND(InitFEMFXMeshVertexFactory)([VertexFactory = this, VertexBuffer](FRHICommandListImmediate& RHICmdList)
-           {
-               VertexFactory->Init_RenderThread(VertexBuffer);
-           });
+            ENQUEUE_RENDER_COMMAND(InitFEMFXMeshVertexFactory)([this, VertexBuffer](FRHICommandListImmediate& RHICmdList)
+            {
+                this->Init_RenderThread(VertexBuffer);
+            });
         }
     }
 
     /**
     * Should we cache the material's shadertype on this platform with this vertex factory?
     */
-    static bool ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType);
+    static bool ShouldCompilePermutation(const FVertexFactoryShaderPermutationParameters& Parameters);
 
-    static void ModifyCompilationEnvironment(const FVertexFactoryShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
-    {
-        OutEnvironment.SetDefine(TEXT("VF_SUPPORTS_SPEEDTREE_WIND"), TEXT("1"));
-        // OutEnvironment.SetDefine(TEXT("VF_SUPPORTS_PRIMITIVE_SCENE_DATA"), 1);
-    }
+    static void ModifyCompilationEnvironment(const FVertexFactoryShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment);
 
-    static bool ShouldCompilePermutation(const FVertexFactoryShaderPermutationParameters& Parameters)
-    {
-        return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5);
-    }
+    static void ValidateCompiledResult(const FVertexFactoryType* Type, EShaderPlatform Platform, const FShaderParameterMap& ParameterMap, TArray<FString>& OutErrors);
 
     /**
     * An implementation of the interface used by TSynchronizedResource to update the resource with new data from the game thread.
@@ -105,37 +132,114 @@ class FFEMFXMeshVertexFactory : public FVertexFactory
 
     // FRenderResource interface.
     virtual void InitRHI() override;
+    virtual void ReleaseRHI() override
+    {
+        UniformBuffer.SafeRelease();
+        FVertexFactory::ReleaseRHI();
+    }
 
     static bool SupportsTessellationShaders() { return true; }
 
     static FVertexFactoryShaderParameters* ConstructShaderParameters(EShaderFrequency ShaderFrequency);
 
-    void SetColorOverrideStream(FRHICommandList& RHICmdList, const FVertexBuffer* ColorVertexBuffer) const
-    {
+    void GetColorOverrideStream(const FVertexBuffer* ColorVertexBuffer, FVertexInputStreamArray& VertexStreams) const {
         checkf(ColorVertexBuffer->IsInitialized(), TEXT("Color Vertex buffer was not initialized! Name %s"), *ColorVertexBuffer->GetFriendlyName());
-        checkf(IsInitialized() && ColorStreamIndex > 0, TEXT("Per-mesh colors with bad stream setup! Name %s"), *ColorVertexBuffer->GetFriendlyName());
-        RHICmdList.SetStreamSource(ColorStreamIndex, ColorVertexBuffer->VertexBufferRHI,  0);
+        checkf(IsInitialized() && EnumHasAnyFlags(EVertexStreamUsage::Overridden, Data.ColorComponent.VertexStreamUsage) && ColorStreamIndex > 0, TEXT("Per-mesh colors with bad stream setup! Name %s"), * ColorVertexBuffer->GetFriendlyName());
+
+        VertexStreams.Add(FVertexInputStream(ColorStreamIndex, 0, ColorVertexBuffer->VertexBufferRHI));
+    }
+
+    inline FRHIShaderResourceView* GetPositionsSRV() const
+    {
+        return Data.PositionComponentSRV;
+    }
+
+    inline FRHIShaderResourceView* GetTangentsSRV() const
+    {
+        return Data.TangentsSRV;
+    }
+
+    inline FRHIShaderResourceView* GetTextureCoordinatesSRV() const
+    {
+        return Data.TextureCoordinatesSRV;
+    }
+
+    inline FRHIShaderResourceView* GetColorComponentsSRV() const
+    {
+        return Data.ColorComponentsSRV;
+    }
+
+    inline const uint32 GetColorIndexMask() const
+    {
+        return Data.ColorIndexMask;
+    }
+
+    inline const int GetLightMapCoordinateIndex() const
+    {
+        return Data.LightMapCoordinateIndex;
+    }
+
+    inline const int GetNumTexcoords() const
+    {
+        return Data.NumTexCoords;
+    }
+
+    FRHIUniformBuffer* GetUniformBuffer() const
+    {
+        return UniformBuffer.GetReference();
     }
 
 protected:
     const FDataType& GetData() const { return Data; }
 
     FDataType Data;
+    TUniformBufferRef<FFEMFXMeshVertexFactoryUniformShaderParameters> UniformBuffer;
 
-    int32 ColorStreamIndex = -1;
+    int32 ColorStreamIndex;
+};
+
+class FFEMFXMeshVertexFactoryShaderParameters : public FVertexFactoryShaderParameters
+{
+public:
+    virtual void Bind(const FShaderParameterMap& ParameterMap);
+    virtual void Serialize(FArchive& Ar);
+
+	virtual void GetElementShaderBindings(
+		const FSceneInterface* Scene, const FSceneView* View,
+		const FMeshMaterialShader* Shader,
+		const EVertexInputStreamType InputStreamType,
+		ERHIFeatureLevel::Type FeatureLevel,
+		const FVertexFactory* VertexFactory,
+		const FMeshBatchElement& BatchElement,
+		FMeshDrawSingleShaderBindings& ShaderBindings,
+		FVertexInputStreamArray& VertexStreams) const;
+
+    FFEMFXMeshVertexFactoryShaderParameters()
+    {
+    }
+
+protected:
+    FShaderResourceParameter TetMeshVertexPosBufferParameter;
+    FShaderResourceParameter TetMeshVertexRotBufferParameter;
+	FShaderResourceParameter TetMeshDeformationBufferParameter;
+    FShaderResourceParameter TetVertexIdBufferParameter;
+    FShaderResourceParameter BarycentricPosIdBufferParameter;
+    FShaderResourceParameter BarycentricPosBufferParameter;
 };
 
 // User data for vertex shader.   Includes the structured buffer SRVs to support deformation of render mesh by tet mesh.
 struct FFEMFXMeshBatchElementParams
 {
+    FFEMFXMeshBatchElementParams() {  }
+
     // Tet mesh vertex positions
     FShaderResourceViewRHIRef TetMeshVertexPosBufferSRV;
 
     // Tet mesh vertex rotations
     FShaderResourceViewRHIRef TetMeshVertexRotBufferSRV;
 
-    // Tet mesh deformation values
-    FShaderResourceViewRHIRef TetMeshDeformationBufferSRV;
+	// Tet mesh deformation values
+	FShaderResourceViewRHIRef TetMeshDeformationBufferSRV;
 
     // Tet vertex indices
     FShaderResourceViewRHIRef TetVertexIdBufferSRV;
@@ -145,121 +249,6 @@ struct FFEMFXMeshBatchElementParams
 
     // Buffer of tet barycentric coordinates.  May contain several coordinates for each vertex to support a change in tet assignments after fracture.
     FShaderResourceViewRHIRef BarycentricPosBufferSRV;
-};
-
-class FFEMFXMeshVertexFactoryShaderParameters : public FVertexFactoryShaderParameters
-{
-    DECLARE_TYPE_LAYOUT(FFEMFXMeshVertexFactoryShaderParameters, NonVirtual);
-
-    void Bind(const FShaderParameterMap& ParameterMap)
-    {
-        TetMeshVertexPosBufferParameter.Bind(ParameterMap, TEXT("TetMeshVertexPosBuffer"));
-        TetMeshVertexRotBufferParameter.Bind(ParameterMap, TEXT("TetMeshVertexRotBuffer"));
-        TetMeshDeformationBufferParameter.Bind(ParameterMap, TEXT("TetMeshDeformationBuffer"));
-        TetVertexIdBufferParameter.Bind(ParameterMap, TEXT("TetVertexIdBuffer"));
-        BarycentricPosIdBufferParameter.Bind(ParameterMap, TEXT("BarycentricPosIdBuffer"));
-        BarycentricPosBufferParameter.Bind(ParameterMap, TEXT("BarycentricPosBuffer"));
-    }
-
-    void Serialize(FArchive& Ar)
-    {
-        Ar << TetMeshVertexPosBufferParameter
-           << TetMeshVertexRotBufferParameter
-           << TetMeshDeformationBufferParameter
-           << TetVertexIdBufferParameter
-           << BarycentricPosIdBufferParameter
-           << BarycentricPosBufferParameter;
-    }
-
-    void GetElementShaderBindings(const FSceneInterface* Scene, const FSceneView* View, const FMeshMaterialShader* Shader,
-        const EVertexInputStreamType InputStreamType, ERHIFeatureLevel::Type FeatureLevel, const FVertexFactory* VertexFactory,
-        const FMeshBatchElement& BatchElement, FMeshDrawSingleShaderBindings& ShaderBindings, FVertexInputStreamArray& VertexStreams) const
-    {
-        // If the batch carries a color vertex buffer override, the old code used
-        // VertexFactory->SetColorOverrideStream(RHICmdList, OverrideColorVertexBuffer).
-        // In the new API you should add a vertex stream into VertexStreams so the
-        // vertex factory will use it when setting up the draw. Implementing that
-        // depends on your vertex-factory implementation (helpers / overloads).
-        //
-        // Many vertex factories expose helper methods to append vertex streams
-        // (or you can construct FVertexStreamComponent and add it to VertexStreams).
-        //
-        // If you have a helper on your vertex factory to set the color override stream
-        // for the new API, call it here. Example (pseudo; keep or adapt to your VF):
-        //
-        // if (BatchElement.bUserDataIsColorVertexBuffer)
-        // {
-        //     FColorVertexBuffer* OverrideColorVertexBuffer = (FColorVertexBuffer*)BatchElement.UserData;
-        //     check(OverrideColorVertexBuffer);
-        //     static_cast<const FFEMFXMeshVertexFactory*>(VertexFactory)->AddColorOverrideVertexStream(VertexStreams, OverrideColorVertexBuffer);
-        // }
-        //
-        // If you don't have such helper, omit the override handling here or implement
-        // construction of FVertexStreamComponent entries and append them to VertexStreams.
-
-        // Bind SRV parameters the same way we used to set SRVs in SetMesh.
-        // FMeshDrawSingleShaderBindings::Add supports adding FRHIShaderResourceView*.
-        const FFEMFXMeshBatchElementParams* BatchElementParams = nullptr;
-        if (!BatchElement.bUserDataIsColorVertexBuffer)
-        {
-            BatchElementParams = static_cast<const FFEMFXMeshBatchElementParams*>(BatchElement.UserData);
-        }
-
-        // Guard: if there is no user-data or user-data is color override, nothing to bind here.
-        if (!BatchElementParams)
-        {
-            return;
-        }
-
-        const FShaderResourceViewRHIRef TetMeshVertexPosBufferSRV = BatchElementParams->TetMeshVertexPosBufferSRV;
-        const FShaderResourceViewRHIRef TetMeshVertexRotBufferSRV = BatchElementParams->TetMeshVertexRotBufferSRV;
-        const FShaderResourceViewRHIRef TetMeshDeformationBufferSRV = BatchElementParams->TetMeshDeformationBufferSRV;
-        const FShaderResourceViewRHIRef TetVertexIdBufferSRV = BatchElementParams->TetVertexIdBufferSRV;
-        const FShaderResourceViewRHIRef BarycentricPosIdBufferSRV = BatchElementParams->BarycentricPosIdBufferSRV;
-        const FShaderResourceViewRHIRef BarycentricPosBufferSRV = BatchElementParams->BarycentricPosBufferSRV;
-
-        // Only add bindings for parameters that were bound at compile time and whose SRV is valid.
-        if (TetMeshVertexPosBufferParameter.IsBound() && TetMeshVertexPosBufferSRV)
-        {
-            ShaderBindings.Add(TetMeshVertexPosBufferParameter, TetMeshVertexPosBufferSRV.GetReference());
-        }
-
-        if (TetMeshVertexRotBufferParameter.IsBound() && TetMeshVertexRotBufferSRV)
-        {
-            ShaderBindings.Add(TetMeshVertexRotBufferParameter, TetMeshVertexRotBufferSRV.GetReference());
-        }
-
-        if (TetMeshDeformationBufferParameter.IsBound() && TetMeshDeformationBufferSRV)
-        {
-            ShaderBindings.Add(TetMeshDeformationBufferParameter, TetMeshDeformationBufferSRV.GetReference());
-        }
-
-        if (TetVertexIdBufferParameter.IsBound() && TetVertexIdBufferSRV)
-        {
-            ShaderBindings.Add(TetVertexIdBufferParameter, TetVertexIdBufferSRV.GetReference());
-        }
-
-        if (BarycentricPosIdBufferParameter.IsBound() && BarycentricPosIdBufferSRV)
-        {
-            ShaderBindings.Add(BarycentricPosIdBufferParameter, BarycentricPosIdBufferSRV.GetReference());
-        }
-
-        if (BarycentricPosBufferParameter.IsBound() && BarycentricPosBufferSRV)
-        {
-            ShaderBindings.Add(BarycentricPosBufferParameter, BarycentricPosBufferSRV.GetReference());
-        }
-    }
-
-    // Keep size field for layout compatibility
-    LAYOUT_FIELD_INITIALIZED(uint32, Size_DEPRECATED, 0u);
-
-protected:
-    LAYOUT_FIELD(FShaderResourceParameter, TetMeshVertexPosBufferParameter);
-    LAYOUT_FIELD(FShaderResourceParameter, TetMeshVertexRotBufferParameter);
-    LAYOUT_FIELD(FShaderResourceParameter, TetMeshDeformationBufferParameter);
-    LAYOUT_FIELD(FShaderResourceParameter, TetVertexIdBufferParameter);
-    LAYOUT_FIELD(FShaderResourceParameter, BarycentricPosIdBufferParameter);
-    LAYOUT_FIELD(FShaderResourceParameter, BarycentricPosBufferParameter);
 };
 
 // Grouping of structured buffer resource and SRV with support for CPU updates (on render thread).
@@ -287,11 +276,12 @@ public:
         NumElements = InNumElements;
         int32 Size = sizeof(Element) * NumElements;
 
-        FRHIResourceCreateInfo CreateInfo(TEXT("FStructuredBufferAndSRV"));
+        FRHIResourceCreateInfo CreateInfo;
         StructuredBufferRHI = RHICreateStructuredBuffer(sizeof(Element), Size, BUF_Dynamic | BUF_ShaderResource, CreateInfo);
         SRV = RHICreateShaderResourceView(StructuredBufferRHI);
     }
 
+    // Init RHI buffer with given number of elements.  If not called from rendering thread enqueues call to Init_RenderThread.
     void Init(int32 InNumElements)
     {
         if (IsInRenderingThread())
@@ -300,12 +290,9 @@ public:
         }
         else
         {
-            FStructuredBufferAndSRV<Element>* Buffer = this;
-            int32 LocalNumElements = InNumElements;
-
-            ENQUEUE_RENDER_COMMAND(InitCommand)([Buffer, LocalNumElements](FRHICommandListImmediate& RHICmdList)
+            ENQUEUE_RENDER_COMMAND(InitCommand)([this, InNumElements](FRHICommandListImmediate& RHICmdList)
             {
-                Buffer->Init_RenderThread(LocalNumElements);
+                this->Init_RenderThread(InNumElements);
             });
         }
     }
@@ -326,7 +313,7 @@ public:
         StructuredBufferRHI.SafeRelease();
         SRV.SafeRelease();
 
-        FRHIResourceCreateInfo CreateInfo(TEXT("FStructuredBufferAndSRV"));
+        FRHIResourceCreateInfo CreateInfo;
         StructuredBufferRHI = RHICreateStructuredBuffer(sizeof(Element), Size, BUF_Dynamic | BUF_ShaderResource, CreateInfo);
         void* DstBuffer = RHILockStructuredBuffer(StructuredBufferRHI, 0, Size, RLM_WriteOnly);
         FMemory::Memcpy(DstBuffer, SrcBuffer.GetData(), Size);
@@ -335,6 +322,7 @@ public:
         SRV = RHICreateShaderResourceView(StructuredBufferRHI);
     }
 
+    // Init RHI buffer with array data.  If not called from rendering thread copies source data and enqueues call to Init_RenderThread.
     void Init(const TArray<Element>& SrcBuffer)
     {
         if (IsInRenderingThread())
@@ -343,13 +331,12 @@ public:
         }
         else
         {
-            TArray<Element>* CopyBuffer = new TArray<Element>(SrcBuffer);
+            TArray<Element>* CopyBuffer = new TArray<Element>();
+            *CopyBuffer = SrcBuffer;
 
-            FStructuredBufferAndSRV<Element>* Buffer = this;
-
-            ENQUEUE_RENDER_COMMAND(InitCommand_Array)([Buffer, CopyBuffer](FRHICommandListImmediate& RHICmdList)
+            ENQUEUE_RENDER_COMMAND(InitCommand)([this, CopyBuffer](FRHICommandListImmediate& RHICmdList)
             {
-                Buffer->Init_RenderThread(*CopyBuffer);
+                this->Init_RenderThread(*CopyBuffer);
                 delete CopyBuffer;
             });
         }
@@ -358,7 +345,6 @@ public:
     void Update_RenderThread(const TArray<Element>& SrcBuffer)
     {
         check(IsInRenderingThread());
-
         if (SrcBuffer.Num() > NumElements)
         {
             return;
@@ -370,6 +356,7 @@ public:
         RHIUnlockStructuredBuffer(StructuredBufferRHI);
     }
 
+    // Update RHI buffer.  If not called from rendering thread copies source data and enqueues call to Update_RenderThread.
     void Update(const TArray<Element>& SrcBuffer)
     {
         if (IsInRenderingThread())
@@ -378,13 +365,12 @@ public:
         }
         else
         {
-            TArray<Element>* CopyBuffer = new TArray<Element>(SrcBuffer);
+            TArray<Element>* CopyBuffer = new TArray<Element>();
+            *CopyBuffer = SrcBuffer;
 
-            FStructuredBufferAndSRV<Element>* Buffer = this;
-
-            ENQUEUE_RENDER_COMMAND(UpdateCommand_Array)([Buffer, CopyBuffer](FRHICommandListImmediate& RHICmdList)
+            ENQUEUE_RENDER_COMMAND(UpdateCommand)([this, CopyBuffer](FRHICommandListImmediate& RHICmdList)
             {
-                Buffer->Update_RenderThread(*CopyBuffer);
+                this->Update_RenderThread(*CopyBuffer);
                 delete CopyBuffer;
             });
         }
@@ -403,17 +389,23 @@ public:
 class FFEMFXMeshProxySection
 {
 public:
-    bool bSectionVisible = true;
-	uint16 MaterialIndex = 0;
-	FFEMFXMeshVertexBuffer VertexBuffer;
-	FFEMFXMeshIndexBuffer IndexBuffer;
-	FFEMFXMeshVertexFactory VertexFactory = FFEMFXMeshVertexFactory(ERHIFeatureLevel::SM5);
+	uint16 MaterialIndex;
+	FFEMFXMeshVertexBuffer  VertexBuffer;
+	FFEMFXMeshIndexBuffer   IndexBuffer;
+	FFEMFXMeshVertexFactory VertexFactory;
 
 	// Data split this way to minimize CPU updates on fracture
+	FStructuredBufferAndSRV<int32> VertexBarycentricPosOffsets;                         // These ids can be updated to change tet assignments after fracture
+	FStructuredBufferAndSRV<FFEMFXMeshBarycentricPos> VertexBarycentricPositions;   // Buffer can include pre and post fracture barycentric data
 
-    // These ids can be updated to change tet assignments after fracture
-	FStructuredBufferAndSRV<int32> VertexBarycentricPosOffsets;
+	bool bSectionVisible;
 
-    // Buffer can include pre and post fracture barycentric data
-	FStructuredBufferAndSRV<FFEMFXMeshBarycentricPos> VertexBarycentricPositions;
+	//UMaterialInterface* OverrideMaterial;
+
+	FFEMFXMeshProxySection(ERHIFeatureLevel::Type InFeatureLevel)
+		: MaterialIndex(0)
+		, VertexFactory(InFeatureLevel)
+		, bSectionVisible(true)
+		//, OverrideMaterial(nullptr)
+	{}
 };

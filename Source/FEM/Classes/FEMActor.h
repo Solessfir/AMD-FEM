@@ -12,18 +12,18 @@
 #include "FEMResource.h"
 #include "FEMActor.generated.h"
 
-//class UFEMResource;
 class AFEMFXScene;
-class UActorComponent;
-struct AMD::FmRigidBody;
 class UFEMFXMeshComponent;
+
+namespace AMD
+{
+	struct FmRigidBody;
+}
 
 USTRUCT(BlueprintType)
 struct FFEMMatrix
 {
 	GENERATED_BODY()
-
-public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "FEM")
 	FVector col0;
@@ -49,39 +49,38 @@ struct FAngleConstraintInfo
 {
 	GENERATED_BODY()
 
-public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
-	int ConstraintId;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
-		FString ConstraintName;
+	int32 ConstraintId;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
-		int ContactId;
+	FString ConstraintName;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
-		int ObjectIdA;
+	int32 ContactId;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
-		int ObjectIdB;
+	int32 ObjectIdA;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
+	int32 ObjectIdB;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "FEM")
-		FVector AxisBodySpaceA;
+	FVector AxisBodySpaceA;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "FEM")
-		FVector AxisBodySpaceB;
+	FVector AxisBodySpaceB;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "FEM")
-		float FrictionCoeff;
+	float FrictionCoeff;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "FEM")
-		float kVelCorrection;
+	float kVelCorrection;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "FEM")
-		float kPosCorrection;
+	float kPosCorrection;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "FEM")
-		uint8 Type;
+	uint8 Type;
 
 	FAngleConstraintInfo()
 	{
@@ -101,51 +100,44 @@ struct FGlueConstraintInfo
 {
 	GENERATED_BODY()
 
-public:
-
-		UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
-		int ConstraintId;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
+	int32 ConstraintId;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
-		FString ConstraintName;
+	FString ConstraintName;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
-		int BufferIdA;
+	int32 BufferIdA;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
-		int BufferIdB;
+	int32 BufferIdB;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
-		int BufferTetIdA;
+	int32 BufferTetIdA;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
-		int BufferTetIdB;
+	int32 BufferTetIdB;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "FEM")
-		TArray<int> PosBaryA;
+	TArray<int32> PosBaryA;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "FEM")
-		TArray<int> PosBaryB;
+	TArray<int32> PosBaryB;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "FEM")
-		float LambdaX;
+	float LambdaX;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "FEM")
-		float LambdaY;
+	float LambdaY;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "FEM")
-		float LambdaZ;
+	float LambdaZ;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "FEM")
-		float kVelCorrection;
+	float kVelCorrection;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "FEM")
-		float kPosCorrection;
-
-	FGlueConstraintInfo()
-	{
-
-	}
+	float kPosCorrection;
 
 	static FGlueConstraintInfo FromAMDType(const AMD::FmGlueConstraintSetupParams& constraint, const AMD::FmVector3& impulse);
 };
@@ -155,17 +147,11 @@ struct FPlaneInfo
 {
 	GENERATED_BODY()
 
-public:
-		UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "FEM")
-		FVector Normal;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "FEM")
+	FVector Normal;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "FEM")
-		float Bias;
-
-	FPlaneInfo()
-	{
-
-	}
+	float Bias;
 };
 
 USTRUCT(BlueprintType)
@@ -173,58 +159,49 @@ struct FPlaneConstraintInfo
 {
 	GENERATED_BODY()
 
-public:
-
-		UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
-		int ConstraintId;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
+	int32 ConstraintId;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
-		FString ConstraintName;
+	FString ConstraintName;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
-		int BufferIdA;
+	int32 BufferIdA;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
-		int BufferIdB;
+	int32 BufferIdB;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
-		int BufferTetIdA;
+	int32 BufferTetIdA;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
-		int BufferTetIdB;
+	int32 BufferTetIdB;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "FEM")
-		TArray<int> PosBaryA;
+	TArray<int32> PosBaryA;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "FEM")
-		TArray<int> PosBaryB;
+	TArray<int32> PosBaryB;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "FEM")
-		TArray<FPlaneInfo> Planes;
+	TArray<FPlaneInfo> Planes;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "FEM")
-		float kVelCorrection;
+	float kVelCorrection;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "FEM")
-		float kPosCorrection;
-
-	FPlaneConstraintInfo()
-	{
-
-	}
+	float kPosCorrection;
 
 	static FPlaneConstraintInfo FromAMDType(const AMD::FmPlaneConstraintSetupParams& constraint);
 };
 
-
-
 UCLASS()
 class FEM_API AFEMActor : public AActor
 {
-	GENERATED_UCLASS_BODY()
-
+	GENERATED_BODY()
 
 public:
+	AFEMActor();
 
 	/* FEM */
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "FEM")
@@ -247,7 +224,7 @@ public:
 
 	/* AActor Interface */
 	UFUNCTION(BlueprintCallable, Category = "FEM")
-	virtual void BeginPlay();
+	virtual void BeginPlay() override;
 
 	UFUNCTION(BlueprintCallable, Category = "FEM")
 	virtual void Destroyed() override;
@@ -281,19 +258,19 @@ public:
 	TArray<FAngleConstraintInfo> GetAngleConstraintsByName(FString Name);
 
 	UFUNCTION(BlueprintCallable, Category = "FEM")
-	FAngleConstraintInfo GetAngleConstraintByIndex(int Index);
+	FAngleConstraintInfo GetAngleConstraintByIndex(int32 Index);
 
 	UFUNCTION(BlueprintCallable, Category = "FEM")
 	TArray<FGlueConstraintInfo>GetGlueConstraintsByName(FString Name);
 
 	UFUNCTION(BlueprintCallable, Category = "FEM")
-	FGlueConstraintInfo GetGlueConstraintByIndex(int Index);
+	FGlueConstraintInfo GetGlueConstraintByIndex(int32 Index);
 
 	UFUNCTION(BlueprintCallable, Category = "FEM")
 	TArray<FPlaneConstraintInfo> GetPlaneConstraintsByName(FString Name);
 
 	UFUNCTION(BlueprintCallable, Category = "FEM")
-	FPlaneConstraintInfo GetPlaneConstraintByIndex(int Index);
+	FPlaneConstraintInfo GetPlaneConstraintByIndex(int32 Index);
 
 	UFUNCTION(BlueprintCallable, Category = "FEM")
 	void UpdateAngleConstraint(FAngleConstraintInfo info, bool ShouldDisable);
@@ -308,16 +285,16 @@ public:
     void AddObjectIds(TArray<uint32>& TetMeshIds, TArray<uint32>& RigidBodyIds);
 
 private:
-
 	void CreateIdMapping();
 
 	TMap<unsigned int,unsigned int> resourceIdToBufferId;
 
 	TArray<TPair<FString, unsigned int>> AngleConstraints;
+
 	TArray<TPair<FString, unsigned int>> GlueConstraints;
+
 	TArray<TPair<FString, unsigned int>> PlaneConstraints;
 
 	/* FEM Lib Stuff */
 	TArray<AMD::FmRigidBody*> rigidBodies;
-
 };

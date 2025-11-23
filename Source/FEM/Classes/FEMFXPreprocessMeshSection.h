@@ -12,7 +12,7 @@
 
 struct ObjModelVertex
 {
-	int vertexIndex;
+	int32 vertexIndex;
 	int normalIndex;
 	int texcoordIndex;
 	float pos[3];

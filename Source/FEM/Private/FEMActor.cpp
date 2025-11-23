@@ -10,15 +10,14 @@
 #include "AMD_FEMFX.h"
 #include "FEMFXMathConversion.h"
 #include "FEMMesh.h"
-#include "Kismet/GameplayStatics.h"
+#include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
+#include "UObject/ConstructorHelpers.h"
+#include "FEM.h"
 
-AFEMActor::AFEMActor(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+AFEMActor::AFEMActor()
 {
 	SetActorTickEnabled(true);
-
 	PrimaryActorTick.bCanEverTick = true;
-
 	bOverride_FEMScene = false;
 }
 
@@ -27,15 +26,10 @@ void AFEMActor::BeginPlay()
 	Super::BeginPlay();
 
 	PreFEMLoad();
-
 	FEMLoad();
-
 	PostFEMLoad();
-
 	SetupRigidBodies();
-
 	CreateIdMapping();
-
 	SetupConstraints();
 }
 
@@ -48,14 +42,14 @@ void AFEMActor::Destroyed()
 		Scene->RemoveActor(this);
 
 	}
-	for (int i = 0; i < rigidBodies.Num(); ++i)
+	for (int32 i = 0; i < rigidBodies.Num(); ++i)
 	{
 		AMD::FmRemoveRigidBodyFromScene(Scene->GetSceneBuffer(), FmGetObjectId(*rigidBodies[i]));
         AMD::FmDestroyRigidBody(rigidBodies[i]);
 	}
 	rigidBodies.Empty();
 
-	for (int i = 0; i < AngleConstraints.Num(); ++i)
+	for (int32 i = 0; i < AngleConstraints.Num(); ++i)
 	{
 		AMD::FmRemoveRigidBodyAngleConstraintFromScene(Scene->GetSceneBuffer(), AngleConstraints[i].Value);
 	}
@@ -75,7 +69,7 @@ void AFEMActor::Destroyed()
 
 void AFEMActor::PreFEMLoad_Implementation()
 {
-	GetComponents(UFEMFXMeshComponent::StaticClass(), MeshComponents);
+	GetComponents(MeshComponents);
 
 	TArray<AActor*> ActorsFound;
 	UGameplayStatics::GetAllActorsOfClass(this, AFEMFXScene::StaticClass(), ActorsFound);

@@ -31,7 +31,7 @@ public:
 	FORCEINLINE TArray<FFEMFXTetFractureNewRenderFaces>& GetTetFractureNewRenderFaces() { return FEMMeshTetFractureNewRenderFaces; }
     FORCEINLINE TArray<FTetFractureShardVerticesToUpdate>& GetTetFractureShardVerticesToUpdate() { return TetFractureShardVerticesToUpdate; }
 
-	void InitTetFractureNewRenderFaces(int num) { FEMMeshTetFractureNewRenderFaces.AddDefaulted(num); }
+	void InitTetFractureNewRenderFaces(int32 num) { FEMMeshTetFractureNewRenderFaces.AddDefaulted(num); }
 
 private:
 

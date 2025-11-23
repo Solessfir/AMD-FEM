@@ -21,7 +21,7 @@ struct FTet
 	GENERATED_BODY()
 
 	UPROPERTY(VisibleAnywhere, Category = "FEM")
-	int TetIndex;
+	int32 TetIndex;
 
 	UPROPERTY(VisibleAnywhere, Category = "FEM")
 	TArray<int> Indicies;

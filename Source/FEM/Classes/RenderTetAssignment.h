@@ -41,7 +41,7 @@
         FRenderVertTetAssignment tetAssignments[MAX_RENDER_VERT_TET_ASSIGNMENTS];
 
         UPROPERTY()
-        unsigned int                    numTets;
+        unsigned int numTets;
     };
 
     USTRUCT()

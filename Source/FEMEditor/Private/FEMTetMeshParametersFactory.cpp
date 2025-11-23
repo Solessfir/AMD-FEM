@@ -5,7 +5,6 @@
 //---------------------------------------------------------------------------------------
 
 #include "FEMTetMeshParametersFactory.h"
-#include "Editor.h"
 #include "FEMFXTetMeshParameters.h"
 #include "AssetTypeCategories.h"
 

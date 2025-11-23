@@ -6,9 +6,12 @@
 
 #include "FEMMesh.h"
 #include "AMD_FEMFX.h"
+#include "Rendering/PositionVertexBuffer.h"
 #include "FEMFXVectormath.h"
 #include "FEMFXMathConversion.h"
 #include "RawIndexBuffer.h"
+#include "Rendering/ColorVertexBuffer.h"
+#include "Rendering/StaticMeshVertexBuffer.h"
 #include "Engine/StaticMesh.h"
 #include "FEMMeshTypes.h"
 #include "ProceduralMeshHelper.h"
@@ -44,7 +47,7 @@ bool UFEMMesh::IsCreated()
 	return created;
 }
 
-FFEMFXMeshSection* UFEMMesh::CreateMeshSectionFromFEMFile(AMD::FmTetMeshBuffer* tetMeshBuffer, AMD::FmBvh* BVH, int sectionIdx)
+FFEMFXMeshSection* UFEMMesh::CreateMeshSectionFromFEMFile(AMD::FmTetMeshBuffer* tetMeshBuffer, AMD::FmBvh* BVH, int32 sectionIdx)
 {
 	TArray<FVector> Vertices;
 	TArray<FVector> Normals;
@@ -407,11 +410,10 @@ FFEMFXMeshSection* UFEMMesh::CreateMeshSection(UStaticMesh* StaticMesh, AMD::FmT
 	TetMesh->FEMMeshTetFractureNewRenderFaces.Reset();
 	TetMesh->FEMMeshTetFractureNewRenderFaces.AddDefaulted(FmGetNumTets(*tetMeshBuffer));
 
-	FStaticMeshLODResources& LOD = StaticMesh->GetRenderData()->LODResources[0];
-	FPositionVertexBuffer* posVertBuffer = &LOD.VertexBuffers.PositionVertexBuffer;
-	FRawStaticIndexBuffer* indexBuffer = &LOD.IndexBuffer;
-	FStaticMeshVertexBuffer* meshVertBuffer = &LOD.VertexBuffers.StaticMeshVertexBuffer;
-	FColorVertexBuffer* colorVertexBuffer = &LOD.VertexBuffers.ColorVertexBuffer;
+	FPositionVertexBuffer* posVertBuffer = &StaticMesh->RenderData->LODResources[0].VertexBuffers.PositionVertexBuffer;
+	FRawStaticIndexBuffer* indexBuffer = &StaticMesh->RenderData->LODResources[0].IndexBuffer;
+	FStaticMeshVertexBuffer* meshVertBuffer = &StaticMesh->RenderData->LODResources[0].VertexBuffers.StaticMeshVertexBuffer;
+	FColorVertexBuffer* colorVertexBuffer = &StaticMesh->RenderData->LODResources[0].VertexBuffers.ColorVertexBuffer;
 
 	FBox BoundsBox;
 	BoundsBox.Min = FVector(0, 0, 0);

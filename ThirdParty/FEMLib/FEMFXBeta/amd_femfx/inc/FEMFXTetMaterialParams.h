@@ -29,6 +29,7 @@ THE SOFTWARE.
 #pragma once
 
 #include "FEMFXCommon.h"
+#include "FEMFXVectorMath.h"
 
 namespace AMD
 {

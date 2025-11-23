@@ -28,7 +28,7 @@ void AFEMFXDebugActor::BeginPlay()
 
     if (ActorsFound.Num() > 0)
     {
-        for (int i = 0; i < ActorsFound.Num(); ++i)
+        for (int32 i = 0; i < ActorsFound.Num(); ++i)
         {
             if (!bOverride_FEMScene)
             {

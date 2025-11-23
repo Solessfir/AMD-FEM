@@ -5,9 +5,7 @@
 //---------------------------------------------------------------------------------------
 
 #include "FEMActorFactory.h"
-#include "AssetData.h"
 #include "FEMActor.h"
-#include "FEMResource.h"
 
 UFEMActorFactory::UFEMActorFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -34,9 +32,4 @@ bool UFEMActorFactory::CanCreateActorFrom(const FAssetData& AssetData, FText& Ou
 void UFEMActorFactory::PostSpawnActor(UObject* Asset, AActor* NewActor)
 {
 	Super::PostSpawnActor(Asset, NewActor);
-
-	if (UFEMResource* resource = Cast<UFEMResource>(Asset))
-	{
-
-	}
 }

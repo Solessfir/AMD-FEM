@@ -8,6 +8,7 @@
 
 #include "CoreMinimal.h"
 #include "RenderResource.h"
+#include "Containers/ResourceArray.h"
 #include "RenderResource.h"
 #include "PackedNormal.h"
 #include "RenderUtils.h"
@@ -32,7 +33,7 @@ private:
 
 public:
 
-	TArray<int32> GetIndices(int idx)
+	TArray<int32> GetIndices(int32 idx)
 	{
 		TArray<int32> OutIndices;
 		switch (idx)
@@ -267,7 +268,7 @@ struct FFEMFXMeshSection
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
 	bool bSectionVisible;
 
-    FFEMFXMeshSection()
+	FFEMFXMeshSection()
 		: MaterialIndex(0)
 		, MaxTriIndices(0)
 		, SectionLocalBox(ForceInit)
@@ -306,7 +307,10 @@ struct RenderMeshVertex
 
 struct FFEMFXMeshRenderVertex
 {
-	FFEMFXMeshRenderVertex() {}
+	FFEMFXMeshRenderVertex(): ShardId(0), BaryPosBaseId(0)
+	{
+	}
+
 	FFEMFXMeshRenderVertex(const FVector& InPosition) :
 		Position(InPosition),
 		TextureCoordinate(FVector2D::ZeroVector),
@@ -338,14 +342,15 @@ struct FFEMFXMeshRenderVertex
 		TangentX = InTangentX;
 		TangentZ = InTangentZ;
 		// store determinant of basis in w component of normal vector
-		TangentZ.Vector.W = GetBasisDeterminantSign(InTangentX, InTangentY, InTangentZ) < 0.0f ? 0 : 255;
+		TangentZ.Vector.W = GetBasisDeterminantSignByte(InTangentX, InTangentY, InTangentZ);
 	}
 
-	FVector GetTangentY() const
+	FVector GetTangentY()
 	{
-		const FVector TanX = TangentX.ToFVector();
-		const FVector TanZ = TangentZ.ToFVector();
-		return (TanZ ^ TanX) * (static_cast<float>(TangentZ.Vector.W) / 127.5f - 1.0f);
+		FVector TanX = TangentX.ToFVector();
+		FVector TanZ = TangentZ.ToFVector();
+
+		return (TanZ ^ TanX) * ((float)TangentZ.Vector.W / 127.5f - 1.0f);
 	};
 
 	FVector Position;
@@ -386,11 +391,12 @@ public:
 	virtual void InitRHI() override
 	{
 		const uint32 SizeInBytes = Vertices.Num() * sizeof(FFEMFXMeshRenderVertex);
+
 		FFEMFXMeshVertexResourceArray ResourceArray(Vertices.GetData(), SizeInBytes);
-		FRHIResourceCreateInfo CreateInfo(TEXT("FFEMFXMeshVertexBuffer"));
-		CreateInfo.ResourceArray = &ResourceArray;
+		FRHIResourceCreateInfo CreateInfo(&ResourceArray);
 		VertexBufferRHI = RHICreateVertexBuffer(SizeInBytes, BUF_Static, CreateInfo);
 	}
+
 };
 
 class FFEMFXMeshIndexBuffer : public FIndexBuffer
@@ -405,7 +411,7 @@ public:
 
 	virtual void InitRHI() override
 	{
-		FRHIResourceCreateInfo CreateInfo(TEXT("FFEMFXMeshIndexBuffer"));
+		FRHIResourceCreateInfo CreateInfo;
 		void* Buffer = nullptr;
 
 		if (MaxIndices <= Indices.Num())

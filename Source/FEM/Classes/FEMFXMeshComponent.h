@@ -14,6 +14,7 @@
 #include "PhysicsEngine/ConvexElem.h"
 #include "FEMMeshTypes.h"
 #include "FEMFXRender.h"
+#include "UObject/UnrealType.h"
 #include "FEMCommon.h"
 #include "FEMFXTetMeshParameters.h"
 #include "FEMResource.h"
@@ -65,11 +66,15 @@ public:
 class FFEMFXMeshSceneProxy : public FPrimitiveSceneProxy
 {
 public:
+    SIZE_T GetTypeHash() const override
+    {
+        static size_t UniquePointer;
+        return reinterpret_cast<size_t>(&UniquePointer);
+    }
 
 	FFEMFXMeshSceneProxy(UFEMFXMeshComponent* comp);
 	~FFEMFXMeshSceneProxy();
 
-	virtual SIZE_T GetTypeHash() const override;
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const;
 	virtual bool CanBeOccluded() const override;
 
@@ -351,7 +356,7 @@ public:
 	void ResetFromRestPosition(FTransform transform, FVector velocity);
 
 	UFUNCTION()
-	void PostEditSceneProxyUpdate();
+	void PostEditSceneProxyUpdate() const;
 
 	int SceneBufferIndex;
 
