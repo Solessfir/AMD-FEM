@@ -10,21 +10,22 @@ public class FEM : ModuleRules
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 		PublicDefinitions.Add("NOMINMAX");
 
-		string PluginPath = Path.GetFullPath(Path.Combine(ModuleDirectory, "../../.."));
-		string FEMLibDir  = Path.Combine(PluginPath, "FEM/ThirdParty/FEMLib/FEMFXBeta/amd_femfx/");
+		string PluginDirectory = Path.GetFullPath(Path.Combine(ModuleDirectory, "..", ".."));
+		string ThirdPartyDir = Path.Combine(PluginDirectory, "ThirdParty");
+		string FEMFXDir = Path.Combine(ThirdPartyDir, "FEMLib", "FEMFXBeta", "amd_femfx");
 
 		// Public include paths
 		PublicIncludePaths.AddRange(new string[]
 		{
-			Path.Combine(FEMLibDir, "inc"),
-			Path.Combine(FEMLibDir, "inc/Vectormath")
+			Path.Combine(FEMFXDir, "inc"),
+			Path.Combine(FEMFXDir, "inc/Vectormath")
 		});
 
 		// Private include paths
 		PrivateIncludePaths.AddRange(new string[]
 		{
-			Path.Combine(FEMLibDir, "inc"),
-			Path.Combine(FEMLibDir, "inc/Vectormath")
+			Path.Combine(FEMFXDir, "inc"),
+			Path.Combine(FEMFXDir, "inc/Vectormath")
 		});
 
 		// Dependencies
@@ -40,7 +41,7 @@ public class FEM : ModuleRules
 		});
 
 		// Link against FEMFX static libraries
-		string FEMLibPath = Path.Combine(FEMLibDir, "lib");
+		string FEMLibPath = Path.Combine(FEMFXDir, "lib");
 
 		PublicAdditionalLibraries.Add(Path.Combine(FEMLibPath, "AMD_FEMFX.lib"));
 		PublicAdditionalLibraries.Add(Path.Combine(FEMLibPath, "sample_task_system.lib"));
