@@ -380,19 +380,4 @@ FVertexFactoryShaderParameters* FFEMFXMeshVertexFactory::ConstructShaderParamete
 }
 
 // Implement vertex factory, proving shader file and options.
-//IMPLEMENT_VERTEX_FACTORY_TYPE_EX(FFEMFXMeshVertexFactory, "/Plugin/FEM/Private/FEMFXMeshVertexFactory.ush", true, true, true, false, true, true, true);
-
- FVertexFactoryType FFEMFXMeshVertexFactory::StaticType( L"FFEMFXMeshVertexFactory",
-     L"/Plugin/FEM/Private/FEMFXMeshVertexFactory.ush", true, true, true,
-     false, true, true, true,
-     &ConstructVertexFactoryParameters<FFEMFXMeshVertexFactory>,
-     &GetVertexFactoryParametersLayout<FFEMFXMeshVertexFactory>,
-     &GetVertexFactoryParametersElementShaderBindings<FFEMFXMeshVertexFactory>,
-     FFEMFXMeshVertexFactory::ShouldCompilePermutation,
-     FFEMFXMeshVertexFactory::ModifyCompilationEnvironment, FFEMFXMeshVertexFactory::ValidateCompiledResult, FFEMFXMeshVertexFactory::SupportsTessellationShaders );  FVertexFactoryType* FFEMFXMeshVertexFactory::GetType() const { return &StaticType; };
-
-
-// typedef bool (*ShouldCacheType)(const FVertexFactoryShaderPermutationParameters&);
-// typedef void (*ModifyCompilationEnvironmentType)(const FVertexFactoryShaderPermutationParameters&, FShaderCompilerEnvironment&);
-// typedef void (*ValidateCompiledResultType)(const FVertexFactoryType*, EShaderPlatform, const FShaderParameterMap& ParameterMap, TArray<FString>& OutErrors);
-// typedef bool (*SupportsTessellationShadersType)();
+IMPLEMENT_VERTEX_FACTORY_TYPE_EX(FFEMFXMeshVertexFactory, "/Plugin/FEM/Private/FEMFXMeshVertexFactory.ush", true, true, true, false, true, true, true);

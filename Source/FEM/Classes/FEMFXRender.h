@@ -69,10 +69,9 @@ public:
         /** The stream to read the barycentric position base id from. */
         FVertexStreamComponent BaryPosBaseIdComponent;
 
-        int LightMapCoordinateIndex = -1;
-        int NumTexCoords = -1;
+        int32 LightMapCoordinateIndex = -1;
+        int32 NumTexCoords = -1;
         uint32 ColorIndexMask = ~0u;
-        // uint32 LODLightmapDataIndex = 0;
     };
 
     /** Init function that should only be called on render thread. */
