@@ -21,16 +21,10 @@ check(BufferIndex < Shader->ShaderResourceTable.ResourceTableLayoutHashes.Num())
 
 Error indicates a **Uniform Buffer Layout Mismatch**. It occurs because the memory layout of the C++ Uniform Buffer struct (`FFEMFXMeshVertexFactoryUniformShaderParameters`) does not match the expected layout of the compiled HLSL Shader. This is strictly enforced in newer versions of Unreal Engine (4.27+) and DX12. It typically requires manual padding of the C++ struct to align with HLSL 16-byte registers and a matching manual definition in the `.ush` shader file.
 
-
-### Getting Started:
-Dpwnload `AMD-FEM.zip` from the [releases](https://github.com/Solessfir/AMD-FEM/releases) and extract it into your project's `Plugins` folder.
-	
-The editor built based on the above instructions will have the FEM plugin enabled. For more information on creating and importing models into Unreal for real-time FEM simulation, please refer to [FEMFX Page](https://github.com/GPUOpen-Effects/FEMFX)
-
 ### References:
-
-[Original repo (UE 4.18)](https://github.com/GPUOpenSoftware/UnrealEngine/tree/FEMFX-4.18)  
-[Original example (UE 4.18)](https://github.com/GPUOpenSoftware/UnrealEngine/tree/FEMFX-AlienPods)
+[FEMFX](https://github.com/GPUOpen-Effects/FEMFX)  
+[FEMFX Plugin (UE 4.18)](https://github.com/GPUOpenSoftware/UnrealEngine/tree/FEMFX-4.18)  
+[Example Project (UE 4.18)](https://github.com/GPUOpenSoftware/UnrealEngine/tree/FEMFX-AlienPods)
 
 [Project Borealis FEMFX Plugin (UE 4.24)](https://github.com/ProjectBorealisTeam/UnrealEngine/tree/FEMFX-4.24)  
 [Archived FEMFX Plugin (UE 5.3)](https://github.com/matiasgql/FEMFX-UE5)  
