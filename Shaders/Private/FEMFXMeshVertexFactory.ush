@@ -6,7 +6,6 @@
 
 #include "/Engine/Private/VertexFactoryCommon.ush"
 #include "FEMFXMeshVertexFactoryCommon.ush"
-#include "/Engine/Private/LightmapData.ush"
 
 #if GPUSKIN_PASS_THROUGH
 #include "GpuSkinCommon.ush"
