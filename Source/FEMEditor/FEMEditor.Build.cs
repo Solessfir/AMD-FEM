@@ -17,6 +17,7 @@ public class FEMEditor : ModuleRules
 			"Core",
 			"CoreUObject",
 			"Engine",
+			"RenderCore",
 			"ProceduralMeshComponent",
 			"UnrealEd",
 			"Slate",

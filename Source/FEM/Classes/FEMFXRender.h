@@ -33,7 +33,7 @@ public:
     FFEMFXMeshVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
         : FVertexFactory(InFeatureLevel), ColorStreamIndex(-1)
     {
-        bSupportsManualVertexFetch = true;
+        bSupportsManualVertexFetch = false;
     }
 
     struct FDataType
@@ -69,8 +69,8 @@ public:
         /** The stream to read the barycentric position base id from. */
         FVertexStreamComponent BaryPosBaseIdComponent;
 
-        int32 LightMapCoordinateIndex = -1;
-        int32 NumTexCoords = -1;
+        int32 LightMapCoordinateIndex = 0;
+        int32 NumTexCoords = 1;
         uint32 ColorIndexMask = ~0u;
     };
 
@@ -139,8 +139,6 @@ public:
 
     static bool SupportsTessellationShaders() { return true; }
 
-    static FVertexFactoryShaderParameters* ConstructShaderParameters(EShaderFrequency ShaderFrequency);
-
     void GetColorOverrideStream(const FVertexBuffer* ColorVertexBuffer, FVertexInputStreamArray& VertexStreams) const {
         checkf(ColorVertexBuffer->IsInitialized(), TEXT("Color Vertex buffer was not initialized! Name %s"), *ColorVertexBuffer->GetFriendlyName());
         checkf(IsInitialized() && EnumHasAnyFlags(EVertexStreamUsage::Overridden, Data.ColorComponent.VertexStreamUsage) && ColorStreamIndex > 0, TEXT("Per-mesh colors with bad stream setup! Name %s"), * ColorVertexBuffer->GetFriendlyName());
@@ -199,11 +197,11 @@ protected:
 
 class FFEMFXMeshVertexFactoryShaderParameters : public FVertexFactoryShaderParameters
 {
+    DECLARE_TYPE_LAYOUT(FFEMFXMeshVertexFactoryShaderParameters, NonVirtual);
 public:
-    virtual void Bind(const FShaderParameterMap& ParameterMap);
-    virtual void Serialize(FArchive& Ar);
+    void Bind(const FShaderParameterMap& ParameterMap);
 
-	virtual void GetElementShaderBindings(
+	void GetElementShaderBindings(
 		const FSceneInterface* Scene, const FSceneView* View,
 		const FMeshMaterialShader* Shader,
 		const EVertexInputStreamType InputStreamType,
@@ -218,12 +216,12 @@ public:
     }
 
 protected:
-    FShaderResourceParameter TetMeshVertexPosBufferParameter;
-    FShaderResourceParameter TetMeshVertexRotBufferParameter;
-	FShaderResourceParameter TetMeshDeformationBufferParameter;
-    FShaderResourceParameter TetVertexIdBufferParameter;
-    FShaderResourceParameter BarycentricPosIdBufferParameter;
-    FShaderResourceParameter BarycentricPosBufferParameter;
+    LAYOUT_FIELD(FShaderResourceParameter, TetMeshVertexPosBufferParameter);
+    LAYOUT_FIELD(FShaderResourceParameter, TetMeshVertexRotBufferParameter);
+	LAYOUT_FIELD(FShaderResourceParameter, TetMeshDeformationBufferParameter);
+    LAYOUT_FIELD(FShaderResourceParameter, TetVertexIdBufferParameter);
+    LAYOUT_FIELD(FShaderResourceParameter, BarycentricPosIdBufferParameter);
+    LAYOUT_FIELD(FShaderResourceParameter, BarycentricPosBufferParameter);
 };
 
 // User data for vertex shader.   Includes the structured buffer SRVs to support deformation of render mesh by tet mesh.

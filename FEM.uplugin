@@ -19,7 +19,7 @@
 			"Name": "FEM",
 			"Type": "Runtime",
 			"LoadingPhase": "PostConfigInit",
-            "PlatformAllowList": [
+            "WhitelistPlatforms": [
               "Win64"
             ]
 		},
@@ -27,7 +27,7 @@
 			"Name": "FEMEditor",
 			"Type": "Editor",
 			"LoadingPhase": "PreDefault",
-            "PlatformAllowList": [
+            "WhitelistPlatforms": [
               "Win64"
             ]
 		}

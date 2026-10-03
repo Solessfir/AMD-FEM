@@ -12,6 +12,8 @@ FEMFXVertexFactory.cpp: Local vertex factory implementation
 #include "MeshDrawShaderBindings.h"
 #include "MeshMaterialShader.h"
 
+IMPLEMENT_TYPE_LAYOUT(FFEMFXMeshVertexFactoryShaderParameters);
+
 void FFEMFXMeshVertexFactoryShaderParameters::Bind(const FShaderParameterMap& ParameterMap)
 {
     TetMeshVertexPosBufferParameter.Bind(ParameterMap, TEXT("TetMeshVertexPosBuffer"));
@@ -22,16 +24,6 @@ void FFEMFXMeshVertexFactoryShaderParameters::Bind(const FShaderParameterMap& Pa
     BarycentricPosBufferParameter.Bind(ParameterMap, TEXT("BarycentricPosBuffer"));
 }
 
-void FFEMFXMeshVertexFactoryShaderParameters::Serialize(FArchive& Ar)
-{
-    Ar << TetMeshVertexPosBufferParameter
-        << TetMeshVertexRotBufferParameter
-        << TetMeshDeformationBufferParameter
-        << TetVertexIdBufferParameter
-        << BarycentricPosIdBufferParameter
-        << BarycentricPosBufferParameter;
-}
-
 IMPLEMENT_GLOBAL_SHADER_PARAMETER_STRUCT(FFEMFXMeshVertexFactoryUniformShaderParameters, "FEMFXMeshVF");
 
 TUniformBufferRef<FFEMFXMeshVertexFactoryUniformShaderParameters> CreateFEMFXMeshVFUniformBuffer(const FFEMFXMeshVertexFactory* VertexFactory, uint32 LODLightmapDataIndex, FColorVertexBuffer* OverrideColorVertexBuffer, int32 BaseVertexIndex)
@@ -39,9 +31,13 @@ TUniformBufferRef<FFEMFXMeshVertexFactoryUniformShaderParameters> CreateFEMFXMes
     FFEMFXMeshVertexFactoryUniformShaderParameters UniformParameters;
 
     UniformParameters.LODLightmapDataIndex = LODLightmapDataIndex;
+    UniformParameters.VertexFetch_PositionBuffer = GNullColorVertexBuffer.VertexBufferSRV;
+    UniformParameters.VertexFetch_PackedTangentsBuffer = GNullColorVertexBuffer.VertexBufferSRV;
+    UniformParameters.VertexFetch_TexCoordBuffer = GNullColorVertexBuffer.VertexBufferSRV;
+    UniformParameters.VertexFetch_ColorComponentsBuffer = GNullColorVertexBuffer.VertexBufferSRV;
     int32 ColorIndexMask = 0;
 
-    if (RHISupportsManualVertexFetch(GMaxRHIShaderPlatform))
+    if (VertexFactory->SupportsManualVertexFetch(GMaxRHIFeatureLevel))
     {
         UniformParameters.VertexFetch_PositionBuffer = VertexFactory->GetPositionsSRV();
 
@@ -59,12 +55,6 @@ TUniformBufferRef<FFEMFXMeshVertexFactoryUniformShaderParameters> CreateFEMFXMes
             ColorIndexMask = (int32)VertexFactory->GetColorIndexMask();
         }
     }
-    else
-    {
-        UniformParameters.VertexFetch_PackedTangentsBuffer = GNullColorVertexBuffer.VertexBufferSRV;
-        UniformParameters.VertexFetch_TexCoordBuffer = GNullColorVertexBuffer.VertexBufferSRV;
-    }
-
     if (!UniformParameters.VertexFetch_ColorComponentsBuffer)
     {
         UniformParameters.VertexFetch_ColorComponentsBuffer = GNullColorVertexBuffer.VertexBufferSRV;
@@ -99,7 +89,7 @@ void FFEMFXMeshVertexFactoryShaderParameters::GetElementShaderBindings(
             VertexFactoryUniformBuffer = FEMVertexFactory->GetUniformBuffer();
         }
 
-        ShaderBindings.Add(Shader->GetUniformBufferParameter<FLocalVertexFactoryUniformShaderParameters>(), VertexFactoryUniformBuffer);
+        ShaderBindings.Add(Shader->GetUniformBufferParameter<FFEMFXMeshVertexFactoryUniformShaderParameters>(), VertexFactoryUniformBuffer);
     }
 
     if (BatchElement.bUserDataIsColorVertexBuffer)
@@ -181,15 +171,12 @@ void FFEMFXMeshVertexFactory::ModifyCompilationEnvironment(const FVertexFactoryS
 {
     OutEnvironment.SetDefine(TEXT("VF_SUPPORTS_SPEEDTREE_WIND"), TEXT("1"));
 
-    const bool ContainsManualVertexFetch = OutEnvironment.GetDefinitions().Contains("MANUAL_VERTEX_FETCH");
-    if (!ContainsManualVertexFetch && RHISupportsManualVertexFetch(Parameters.Platform))
-    {
-        OutEnvironment.SetDefine(TEXT("MANUAL_VERTEX_FETCH"), TEXT("1"));
-    }
+    // Vertex attributes use interleaved streams rather than manual-fetch SRVs.
+    OutEnvironment.SetDefine(TEXT("MANUAL_VERTEX_FETCH"), TEXT("0"));
 
     const bool bUseGPUSceneAndPrimitiveIdStream = Parameters.VertexFactoryType->SupportsPrimitiveIdStream() && UseGPUScene(Parameters.Platform, GetMaxSupportedFeatureLevel(Parameters.Platform));
     OutEnvironment.SetDefine(TEXT("VF_SUPPORTS_PRIMITIVE_SCENE_DATA"), bUseGPUSceneAndPrimitiveIdStream);
-    OutEnvironment.SetDefine(TEXT("VF_GPU_SCENE_BUFFER"), bUseGPUSceneAndPrimitiveIdStream && !GPUSceneUseTexture2D(Parameters.Platform));
+    OutEnvironment.SetDefine(TEXT("VF_GPU_SCENE_TEXTURE"), bUseGPUSceneAndPrimitiveIdStream && GPUSceneUseTexture2D(Parameters.Platform));
 }
 
 void FFEMFXMeshVertexFactory::ValidateCompiledResult(const FVertexFactoryType* Type, EShaderPlatform Platform, const FShaderParameterMap& ParameterMap, TArray<FString>& OutErrors)
@@ -355,29 +342,13 @@ void FFEMFXMeshVertexFactory::InitRHI()
     InitDeclaration(Elements);
 
     check(IsValidRef(GetDeclaration()));
+    if (SupportsManualVertexFetch(GetFeatureLevel()) || bCanUseGPUScene)
+    {
+        UniformBuffer = CreateFEMFXMeshVFUniformBuffer(this, 0, nullptr, 0);
+    }
 }
 
-FVertexFactoryShaderParameters* FFEMFXMeshVertexFactory::ConstructShaderParameters(EShaderFrequency ShaderFrequency)
-{
-    if (ShaderFrequency == SF_Vertex)
-    {
-        return new FFEMFXMeshVertexFactoryShaderParameters();
-    }
-
-#if RHI_RAYTRACING
-    if (ShaderFrequency == SF_RayHitGroup)
-    {
-        return new FFEMFXMeshVertexFactoryShaderParameters();
-    }
-
-    if (ShaderFrequency == SF_Compute)
-    {
-        return new FFEMFXMeshVertexFactoryShaderParameters();
-    }
-#endif // RHI_RAYTRACING
-
-    return nullptr;
-}
+IMPLEMENT_VERTEX_FACTORY_PARAMETER_TYPE(FFEMFXMeshVertexFactory, SF_Vertex, FFEMFXMeshVertexFactoryShaderParameters);
 
 // Implement vertex factory, proving shader file and options.
 IMPLEMENT_VERTEX_FACTORY_TYPE_EX(FFEMFXMeshVertexFactory, "/Plugin/FEM/Private/FEMFXMeshVertexFactory.ush", true, true, true, false, true, true, true);

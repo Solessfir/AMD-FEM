@@ -1,31 +1,89 @@
 # AMD FEMFX Plugin
 
-**AMD Finite Element Material** is an Unreal Engine plugin based on the `AMD FEMFX` multi-threaded CPU library. The FEMFX library utilizes the finite element method to realistically simulate deformation of objects with different material properties.
-For more information about the FEMFX library, please visit: [FEMFX Page](https://github.com/GPUOpen-Effects/FEMFX)
+An Unreal Engine plugin based on AMD's [FEMFX](https://github.com/GPUOpen-Effects/FEMFX) CPU finite element library for deformable and breakable objects.
 
+**Supports Unreal Engine 4.27 only, on Windows 64-bit.**
 
-## Known Issues
+## Installation
 
-**Crash on Component Usage (Uniform Buffer Mismatch)**
+Download this repository for a source installation, or a compatible UE 4.27 Win64 package from [Releases](https://github.com/Solessfir/AMD-FEM/releases), when available.
 
-When adding `UFEMMesh` to `UFEMFXMeshComponent` or opening a Blueprint Viewport containing assigned `UFEMTetMesh`, you will encounter the following critical assertion failure, causing the editor to crash:
+1. Close the editor and put the plugin in `<Project>/Plugins/AMD-FEM`, with `FEM.uplugin` directly inside that folder.
+2. Open your UE 4.27 project. **Finite Element Material** is enabled by default. For a source installation, allow Unreal to compile the plugin when prompted.
 
-```cpp
-Assertion failed: Buffer->GetLayout().GetHash() == Shader->ShaderResourceTable.ResourceTableLayoutHashes[BufferIndex] [File:C:/Git/UE5-Vite/Engine/Source/Runtime/D3D12RHI/Private/D3D12Commands.cpp] [Line: 1477] 
+Source installations require a C++ project. If your project is Blueprint-only, add a C++ class before installing the source plugin. A compatible binary release requires no compilation or C++ class.
 
-// Assertion located void FD3D12CommandContext::SetResourcesFromTables::1477
-FD3D12UniformBuffer* Buffer = BoundUniformBuffers[ShaderType::StaticFrequency][BufferIndex];
-check(Buffer);
-check(BufferIndex < Shader->ShaderResourceTable.ResourceTableLayoutHashes.Num());
+## Supported features
+
+- **Elastic deformation:** tetrahedral meshes bend, stretch, and compress, with configurable density, stiffness, and Poisson's ratio.
+- **Plastic deformation:** permanent shape changes controlled by yield threshold, creep, and deformation limits.
+- **Fracture:** splitting along tetrahedral faces, with render mesh updates and Blueprint fracture events.
+- **Procedural meshes:** generate tetrahedral grids with configurable cell counts, dimensions, scale, and randomized vertices.
+- **Asset import:** import FEM format 1.0 files containing tetrahedral meshes, material assignments, tags, render mesh data or FBX references, rigid bodies, and constraints.
+- **Simulation controls:** kinematic tetrahedra, removable anchors, collision groups, sleeping, and multiple named FEM scenes.
+- **Collision and constraints:** FEMFX mesh and rigid-body collisions, scene collision planes, glue constraints, plane constraints, and rigid-body angular constraints.
+- **Blueprint integration:** collision and fracture events, tetrahedron queries, material changes, explosion forces, and resetting meshes to their rest pose.
+- **Rendering:** Unreal materials applied to render meshes driven by the simulated tetrahedra.
+- **CPU simulation:** configurable worker threads and scene capacities.
+
+## Quick start
+
+This example creates a cube that falls onto an FEM collision plane in a new UE 4.27 project.
+
+1. Install the plugin, then open a level.
+2. Place a **FEMFXScene** actor in the level. Set its `Name` property to `Default` and leave `bAllowTick` enabled. Set `minPlaneConstraint` to `(-10, 0, -10)` and `maxPlaneConstraint` to `(10, 10, 10)`. These bounds use FEMFX coordinates in meters, with **Y up**; the minimum Y plane provides a floor at Unreal Z = 0.
+3. Place one **PreProcessedMeshHelper** actor in the level to cache mesh preprocessing.
+4. In the Content Browser, create a **FEM Mesh** asset. In **FEM Options**, enable `Procedural Generate`, set all three cube counts to `2`, all three cube dimensions to `0.5`, and `Scale` to `1`. Leave `Randomize` off and click **Import**. This generates a cube measuring 100 cm on each side, with interior vertices for deformation and fracture.
+5. Create a **Tet Mesh Parameters** asset and keep its default values.
+6. Create a Blueprint with **FEMActor** as its parent class, then add a **FEMFXMeshComponent**. Configure the component:
+   - Set `Name` to `TestCube` and assign the generated asset to `FEMMesh`.
+   - Add a regular opaque Unreal material to `RenderMaterials` at index `0`.
+   - Assign the Tet Mesh Parameters asset to the `Default` entry in `MeshParameters`.
+   - Enable `AddToSimulation`; disable `Kinematic`, `PlasticityEnabled`, and `FractureEnabled` for this first test.
+7. Place the Blueprint at approximately `(0, 0, 300)` in Unreal coordinates. Frame the cube in the viewport and choose **Simulate**. It should render, fall, and collide with the FEM scene's floor plane.
+
+A normal Unreal floor mesh does not automatically become an FEMFX collider. Use the scene's collision planes for this example. `FEMActor` initializes its FEM components and finds the scene named `Default`; adding a FEM component to an ordinary Actor does not perform that setup automatically.
+
+### Deformation and fracture
+
+Reduce `youngsModulus` in the Tet Mesh Parameters asset to make the cube softer. Enable `PlasticityEnabled` and configure `plasticYieldThreshold`, `plasticCreep`, `plasticMin`, and `plasticMax` for permanent deformation.
+
+For breakable objects, enable `FractureEnabled` and configure `fractureStressThreshold`. Fracture requires sufficient stress; enabling the flag alone does not break a mesh. Use collisions or `ApplyExplosionForce` to apply a load, and bind `FractureEvent` for gameplay reactions. The subdivided cube above provides interior vertices for fracture planes.
+
+For several independent mesh assets, use distinct component `Name` values. Components sharing the same mesh can share a name and its preprocessing cache. Additional FEM scenes can be selected through the actor's `bOverride_FEMScene` and `SceneName` properties.
+
+## Importing assets
+
+A `.fem` file is a JSON asset file used by FEMFX, not an application. FEM format 1.0 describes tetrahedral simulation data and can reference FBX render meshes, physical materials, tags, rigid bodies, and constraints. Import it through the Content Browser. An FBX mesh alone does not supply the tetrahedral volume needed for simulation.
+
+### Where to get `.fem` files
+
+AMD's authoring workflow uses **Houdini**, a separate 3D application, with their FEMFX asset tools:
+
+- [AMD FEMFX Houdini assets](https://github.com/GPUOpen-Effects/FEMFX/blob/master/houdini16.5/hda/AMD_FEM_Assets.otl), supplied for Houdini 16.5.
+- [Barrel creation walkthrough](https://github.com/GPUOpen-Effects/FEMFX/blob/master/docs/FEM-my_first_barrel_walkthrough.pdf).
+- [FEM_SimpleSquare.fem example](https://github.com/GPUOpen-Effects/FEMFX/blob/master/samples/FEMFXViewer/FEMFiles/FEM_SimpleSquare.fem) from AMD's viewer samples. This upstream file uses `fbxFiles`; the current Unreal importer expects `FbxFiles`. Rename that JSON key before attempting import.
+
+For the quick start above, no `.fem` file or Houdini installation is needed. The **FEM Mesh** creation dialog generates a tetrahedral grid directly in Unreal.
+
+### Import validation
+
+File reads, JSON structure, versions, array sizes, and referenced indices are validated before creating assets. A failed FBX import removes the temporary actor but retains any assets generated earlier in that import.
+
+Procedural generation requires positive cell counts and finite, positive dimensions and scale. A generated grid is limited to 4096 vertices: `(NumCubesX + 1) * (NumCubesY + 1) * (NumCubesZ + 1) <= 4096`.
+
+## Tests
+
+With no active play session, open **Window > Developer Tools > Session Frontend > Automation**, select the **FEM** tests, and run them. Alternatively, enter this command in the editor's Output Log:
+
+```text
+Automation RunTests FEM.
 ```
 
-Error indicates a **Uniform Buffer Layout Mismatch**. It occurs because the memory layout of the C++ Uniform Buffer struct (`FFEMFXMeshVertexFactoryUniformShaderParameters`) does not match the expected layout of the compiled HLSL Shader. This is strictly enforced in newer versions of Unreal Engine (4.27+) and DX12. It typically requires manual padding of the C++ struct to align with HLSL 16-byte registers and a matching manual definition in the `.ush` shader file.
+The suite checks procedural creation, settings persistence, malformed imports, GPU rendering and editor mesh changes, elastic deformation, fracture, and repeated PIE teardown. Rendering tests require a real graphics RHI. Valid external FEM/FBX imports are not yet covered by automation.
 
-### References:
-[FEMFX](https://github.com/GPUOpen-Effects/FEMFX)  
-[FEMFX Plugin (UE 4.18)](https://github.com/GPUOpenSoftware/UnrealEngine/tree/FEMFX-4.18)  
-[Example Project (UE 4.18)](https://github.com/GPUOpenSoftware/UnrealEngine/tree/FEMFX-AlienPods)
+## References
 
-[Project Borealis FEMFX Plugin (UE 4.24)](https://github.com/ProjectBorealisTeam/UnrealEngine/tree/FEMFX-4.24)  
-[Archived FEMFX Plugin (UE 5.3)](https://github.com/matiasgql/FEMFX-UE5)  
-[Youtube: Integrating an FEM Physics System into Unreal Engine](https://youtu.be/IYClvszCCPA?si=kuNgz-jNWwvvt7UI)
+- [AMD FEMFX library](https://github.com/GPUOpen-Effects/FEMFX)
+- [Original AMD Unreal Engine plugin](https://github.com/GPUOpenSoftware/UnrealEngine/tree/FEMFX-4.18)
+- [Original Alien Pods example project](https://github.com/GPUOpenSoftware/UnrealEngine/tree/FEMFX-AlienPods)

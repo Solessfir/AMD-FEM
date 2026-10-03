@@ -410,10 +410,11 @@ FFEMFXMeshSection* UFEMMesh::CreateMeshSection(UStaticMesh* StaticMesh, AMD::FmT
 	TetMesh->FEMMeshTetFractureNewRenderFaces.Reset();
 	TetMesh->FEMMeshTetFractureNewRenderFaces.AddDefaulted(FmGetNumTets(*tetMeshBuffer));
 
-	FPositionVertexBuffer* posVertBuffer = &StaticMesh->RenderData->LODResources[0].VertexBuffers.PositionVertexBuffer;
-	FRawStaticIndexBuffer* indexBuffer = &StaticMesh->RenderData->LODResources[0].IndexBuffer;
-	FStaticMeshVertexBuffer* meshVertBuffer = &StaticMesh->RenderData->LODResources[0].VertexBuffers.StaticMeshVertexBuffer;
-	FColorVertexBuffer* colorVertexBuffer = &StaticMesh->RenderData->LODResources[0].VertexBuffers.ColorVertexBuffer;
+	FStaticMeshLODResources& LODResources = StaticMesh->GetRenderData()->LODResources[0];
+	FPositionVertexBuffer* posVertBuffer = &LODResources.VertexBuffers.PositionVertexBuffer;
+	FRawStaticIndexBuffer* indexBuffer = &LODResources.IndexBuffer;
+	FStaticMeshVertexBuffer* meshVertBuffer = &LODResources.VertexBuffers.StaticMeshVertexBuffer;
+	FColorVertexBuffer* colorVertexBuffer = &LODResources.VertexBuffers.ColorVertexBuffer;
 
 	FBox BoundsBox;
 	BoundsBox.Min = FVector(0, 0, 0);
