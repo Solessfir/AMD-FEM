@@ -7,7 +7,7 @@
 #include "FEMMesh.h"
 #include "AMD_FEMFX.h"
 #include "Rendering/PositionVertexBuffer.h"
-#include "FEMFXVectormath.h"
+#include "FEMFXVectorMath.h"
 #include "FEMFXMathConversion.h"
 #include "RawIndexBuffer.h"
 #include "Rendering/ColorVertexBuffer.h"

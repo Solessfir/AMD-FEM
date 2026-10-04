@@ -28,7 +28,7 @@
 #include "FEMFXRender.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "AMD_FEMFX.h"
-#include "FEMFXVectormath.h"
+#include "FEMFXVectorMath.h"
 #include "FEMMesh.h"
 #include "FEMFXMathConversion.h"
 #include "RenderTetAssignment.h"
@@ -58,7 +58,7 @@ static void ConvertFEMFXMeshToDynMeshVertex(FFEMFXMeshRenderVertex& Vert, const 
     Vert.TextureCoordinate = ProcVert.UV0;
     Vert.TangentX = ProcVert.Tangent.TangentX;
     Vert.TangentZ = ProcVert.Normal;
-    Vert.TangentZ.Vector.W = ProcVert.Tangent.bFlipTangentY ? 0 : 255;
+    Vert.TangentZ.Vector.W = ProcVert.Tangent.bFlipTangentY ? 0 : static_cast<int8>(255);
     Vert.ShardId = ProcVert.ShardId;
     Vert.BaryPosBaseId = ProcVert.BaryPosBaseId;
 }

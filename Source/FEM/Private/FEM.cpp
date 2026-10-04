@@ -2,6 +2,8 @@
 
 #include "FEM.h"
 #include "Interfaces/IPluginManager.h"
+#include "Misc/Paths.h"
+#include "ShaderCore.h"
 
 DEFINE_LOG_CATEGORY(FEMLog);
 

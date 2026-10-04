@@ -2,7 +2,7 @@
 
 #if WITH_DEV_AUTOMATION_TESTS
 
-#include "FEMFXVectormath.h"
+#include "FEMFXVectorMath.h"
 #include "AMD_FEMFX.h"
 #include "Engine/World.h"
 #include "Engine/Engine.h"

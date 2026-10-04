@@ -15,6 +15,7 @@
 #include "FEMMesh.generated.h"
 
 class UFEMMeshResource;
+class UStaticMesh;
 
 UCLASS(hidecategories = Object, BlueprintType)
 class FEM_API UFEMTetMesh : public UObject

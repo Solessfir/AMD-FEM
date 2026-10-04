@@ -9,6 +9,7 @@ public class FEM : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 		PublicDefinitions.Add("NOMINMAX");
+		PublicDefinitions.Add("FEMFX_USE_UNREAL_MATH=1");
 
 		string PluginDirectory = Path.GetFullPath(Path.Combine(ModuleDirectory, "..", ".."));
 		string ThirdPartyDir = Path.Combine(PluginDirectory, "ThirdParty");
@@ -43,7 +44,21 @@ public class FEM : ModuleRules
 		// Link against FEMFX static libraries
 		string FEMLibPath = Path.Combine(FEMFXDir, "lib");
 
-		PublicAdditionalLibraries.Add(Path.Combine(FEMLibPath, "AMD_FEMFX.lib"));
-		PublicAdditionalLibraries.Add(Path.Combine(FEMLibPath, "sample_task_system.lib"));
+		if (Target.Platform == UnrealTargetPlatform.Win64)
+		{
+			PublicAdditionalLibraries.Add(Path.Combine(FEMLibPath, "AMD_FEMFX.lib"));
+			PublicAdditionalLibraries.Add(Path.Combine(FEMLibPath, "sample_task_system.lib"));
+		}
+		else if (Target.Platform == UnrealTargetPlatform.Linux)
+		{
+			if (Target.Architecture != "x86_64-unknown-linux-gnu")
+			{
+				throw new BuildException("FEM supports Linux x86_64 only.");
+			}
+			string LinuxLibPath = Path.Combine(FEMLibPath, "Linux", Target.Architecture);
+			PublicAdditionalLibraries.Add(Path.Combine(LinuxLibPath, "libAMD_FEMFX.a"));
+			PublicAdditionalLibraries.Add(Path.Combine(LinuxLibPath, "libsample_task_system.a"));
+			PublicSystemLibraries.Add("pthread");
+		}
 	}
 }

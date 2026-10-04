@@ -6,8 +6,26 @@
 
 #include "LoadFEMMesh.h"
 #include "AMD_FEMFX.h"
+#include <cstdio>
 #include <vector>
 #include <assert.h>
+
+#if PLATFORM_WINDOWS
+static constexpr auto ScanMeshValues = &fscanf_s;
+#else
+static constexpr auto ScanMeshValues = &fscanf;
+#endif
+
+static FILE* OpenMeshFile(const char* filename)
+{
+	FILE* file = nullptr;
+#if PLATFORM_WINDOWS
+	fopen_s(&file, filename, "r");
+#else
+	file = fopen(filename, "r");
+#endif
+	return file;
+}
 
 static inline void AddIncidentTetToSet(std::vector<unsigned int>& vertTetIds, unsigned int tetId)
 {
@@ -22,8 +40,7 @@ static inline void AddIncidentTetToSet(std::vector<unsigned int>& vertTetIds, un
 
 int LoadFEMMesh::LoadNodeEleMeshNumVerts(const char* nodeFile)
 {
-	FILE* nodeFP;
-	fopen_s(&nodeFP, nodeFile, "r");
+	FILE* nodeFP = OpenMeshFile(nodeFile);
 
 	if (!nodeFP)
 	{
@@ -35,7 +52,7 @@ int LoadFEMMesh::LoadNodeEleMeshNumVerts(const char* nodeFile)
 	int numDimensions;
 	int numAttributes;
 	int isBoundaryMarker;
-	fscanf_s(nodeFP, "%d %d %d %d", &numPoints, &numDimensions, &numAttributes, &isBoundaryMarker);
+	ScanMeshValues(nodeFP, "%d %d %d %d", &numPoints, &numDimensions, &numAttributes, &isBoundaryMarker);
 
 	fclose(nodeFP);
 
@@ -48,9 +65,7 @@ int LoadFEMMesh::LoadNodeEleMeshNumTets(const char* eleFile, std::vector<unsigne
 	int numNodesPerTet;
 	int isRegionAttribute;
 
-	FILE* eleFP;
-
-	fopen_s(&eleFP, eleFile, "r");
+	FILE* eleFP = OpenMeshFile(eleFile);
 
 	if (!eleFP)
 	{
@@ -58,7 +73,7 @@ int LoadFEMMesh::LoadNodeEleMeshNumTets(const char* eleFile, std::vector<unsigne
 		return -1;
 	}
 
-	fscanf_s(eleFP, "%d %d %d", &numTetrahedra, &numNodesPerTet, &isRegionAttribute);
+	ScanMeshValues(eleFP, "%d %d %d", &numTetrahedra, &numNodesPerTet, &isRegionAttribute);
 
 	assert(numNodesPerTet == 4);
 
@@ -67,7 +82,7 @@ int LoadFEMMesh::LoadNodeEleMeshNumTets(const char* eleFile, std::vector<unsigne
 		int tetNumber;
 		int nodeIdx0, nodeIdx1, nodeIdx2, nodeIdx3;
 
-		fscanf_s(eleFP, "%d %d %d %d %d", &tetNumber, &nodeIdx0, &nodeIdx1, &nodeIdx2, &nodeIdx3);
+		ScanMeshValues(eleFP, "%d %d %d %d %d", &tetNumber, &nodeIdx0, &nodeIdx1, &nodeIdx2, &nodeIdx3);
 
 		// number from 0
 		nodeIdx0--;
@@ -86,7 +101,7 @@ int LoadFEMMesh::LoadNodeEleMeshNumTets(const char* eleFile, std::vector<unsigne
 		int regionAttribute;
 		if (isRegionAttribute)
 		{
-			fscanf_s(eleFP, " %d", &regionAttribute);
+			ScanMeshValues(eleFP, " %d", &regionAttribute);
 		}
 
 		AddIncidentTetToSet(vertIncidentTets[nodeIdx0], tIdx);
@@ -103,11 +118,8 @@ int LoadFEMMesh::LoadNodeEleMeshNumTets(const char* eleFile, std::vector<unsigne
 int LoadFEMMesh::LoadNodeEleMeshData(const char* nodeFile, const char* eleFile, AMD::FmVector3* vertPositions, AMD::FmTetVertIds* tets, float scale)
 {
 
-	FILE* nodeFP;
-	FILE* eleFP;
-
-	fopen_s(&nodeFP, nodeFile, "r");
-	fopen_s(&eleFP, eleFile, "r");
+	FILE* nodeFP = OpenMeshFile(nodeFile);
+	FILE* eleFP = OpenMeshFile(eleFile);
 
 	if (!nodeFP || !eleFP)
 	{
@@ -120,7 +132,7 @@ int LoadFEMMesh::LoadNodeEleMeshData(const char* nodeFile, const char* eleFile, 
 	int numDimensions;
 	int numAttributes;
 	int isBoundaryMarker;
-	fscanf_s(nodeFP, "%d %d %d %d", &numPoints, &numDimensions, &numAttributes, &isBoundaryMarker);
+	ScanMeshValues(nodeFP, "%d %d %d %d", &numPoints, &numDimensions, &numAttributes, &isBoundaryMarker);
 
 	assert(numDimensions == 3);
 	assert(numAttributes >= 0 && numAttributes < 100);
@@ -130,18 +142,18 @@ int LoadFEMMesh::LoadNodeEleMeshData(const char* nodeFile, const char* eleFile, 
 		int nodeNumber;
 		float nodeX, nodeY, nodeZ;
 
-		fscanf_s(nodeFP, "%d %f %f %f", &nodeNumber, &nodeX, &nodeY, &nodeZ);
+		ScanMeshValues(nodeFP, "%d %f %f %f", &nodeNumber, &nodeX, &nodeY, &nodeZ);
 
 		int attribute;
 		for (int attIdx = 0; attIdx < numAttributes; attIdx++)
 		{
-			fscanf_s(nodeFP, " %d", &attribute);
+			ScanMeshValues(nodeFP, " %d", &attribute);
 		}
 
 		int boundaryMarker;
 		if (isBoundaryMarker)
 		{
-			fscanf_s(nodeFP, " %d", &boundaryMarker);
+			ScanMeshValues(nodeFP, " %d", &boundaryMarker);
 		}
 
 		vertPositions[vIdx].x = nodeX * scale;
@@ -153,7 +165,7 @@ int LoadFEMMesh::LoadNodeEleMeshData(const char* nodeFile, const char* eleFile, 
 	int numNodesPerTet;
 	int isRegionAttribute;
 
-	fscanf_s(eleFP, "%d %d %d", &numTetrahedra, &numNodesPerTet, &isRegionAttribute);
+	ScanMeshValues(eleFP, "%d %d %d", &numTetrahedra, &numNodesPerTet, &isRegionAttribute);
 
 	assert(numNodesPerTet == 4);
 
@@ -162,7 +174,7 @@ int LoadFEMMesh::LoadNodeEleMeshData(const char* nodeFile, const char* eleFile, 
 		int tetNumber;
 		int nodeIdx0, nodeIdx1, nodeIdx2, nodeIdx3;
 
-		fscanf_s(eleFP, "%d %d %d %d %d", &tetNumber, &nodeIdx0, &nodeIdx1, &nodeIdx2, &nodeIdx3);
+		ScanMeshValues(eleFP, "%d %d %d %d %d", &tetNumber, &nodeIdx0, &nodeIdx1, &nodeIdx2, &nodeIdx3);
 
 		// number from 0
 		nodeIdx0--;
@@ -178,7 +190,7 @@ int LoadFEMMesh::LoadNodeEleMeshData(const char* nodeFile, const char* eleFile, 
 		int regionAttribute;
 		if (isRegionAttribute)
 		{
-			fscanf_s(eleFP, " %d", &regionAttribute);
+			ScanMeshValues(eleFP, " %d", &regionAttribute);
 		}
 
 		tets[tIdx].ids[0] = nodeIdx0;
@@ -195,11 +207,8 @@ int LoadFEMMesh::LoadNodeEleMeshData(const char* nodeFile, const char* eleFile, 
 
 int LoadFEMMesh::StoreNodeEleMeshData(const char* nodeFile, const char* eleFile, AMD::FmVector3* vertPositions, AMD::FmTetVertIds* tets, int numPoints, int numTetrahedra)
 {
-	FILE* nodeFP;
-	FILE* eleFP;
-
-	fopen_s(&nodeFP, nodeFile, "r");
-	fopen_s(&eleFP, eleFile, "r");
+	FILE* nodeFP = OpenMeshFile(nodeFile);
+	FILE* eleFP = OpenMeshFile(eleFile);
 
 	if (!nodeFP || !eleFP)
 	{

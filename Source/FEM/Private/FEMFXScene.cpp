@@ -14,12 +14,12 @@
 
 void* FmAlignedMalloc(size_t size, size_t alignment)
 {
-    return _aligned_malloc(size, alignment);
+    return FMemory::Malloc(size, static_cast<uint32>(alignment));
 }
 
 void FmAlignedFree(void* ptr)
 {
-    _aligned_free(ptr);
+    FMemory::Free(ptr);
 }
 
 AFEMFXScene::AFEMFXScene(const FObjectInitializer& ObjectInitializer)
@@ -328,6 +328,10 @@ void AFEMFXScene::FreeScene()
 		AMDFXSceneBuffer = nullptr;
 	}
 
+#if PLATFORM_LINUX
+	if (bIsInitialized)
+		AMD::SampleDestroyTaskSystem();
+#endif
 	bIsInitialized = false;
 	timeElapsed = 0.0f;
 	ConditionCheckedMeshes.Reset();

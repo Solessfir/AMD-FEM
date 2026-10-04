@@ -2,16 +2,18 @@
 
 An Unreal Engine plugin based on AMD's [FEMFX](https://github.com/GPUOpen-Effects/FEMFX) CPU finite element library for deformable and breakable objects.
 
-**Supports Unreal Engine 4.27 only, on Windows 64-bit.**
+**Supports Unreal Engine 4.27 only, on Windows 64-bit and Linux x86_64.** Linux libraries and plugin source compilation are validated; Linux editor and Vulkan rendering still need runtime verification.
 
 ## Installation
 
-Download this repository for a source installation, or a compatible UE 4.27 Win64 package from [Releases](https://github.com/Solessfir/AMD-FEM/releases), when available.
+Download this repository for a source installation, or a compatible UE 4.27 package for your platform from [Releases](https://github.com/Solessfir/AMD-FEM/releases), when available.
 
 1. Close the editor and put the plugin in `<Project>/Plugins/AMD-FEM`, with `FEM.uplugin` directly inside that folder.
 2. Open your UE 4.27 project. **Finite Element Material** is enabled by default. For a source installation, allow Unreal to compile the plugin when prompted.
 
 Source installations require a C++ project. If your project is Blueprint-only, add a C++ class before installing the source plugin. A compatible binary release requires no compilation or C++ class.
+
+Linux source installations include the FEMFX static libraries built against Unreal's libc++ and the UE 4.27 CentOS 7 sysroot. To rebuild those dependencies, see [Linux library build instructions](ThirdParty/FEMLib/FEMFXBeta/README-Linux.md). Windows builds continue to use the original Windows libraries. WSL can build and test the Linux FEMFX dependencies, but running the plugin requires a Linux UE 4.27 editor or game build.
 
 ## Supported features
 

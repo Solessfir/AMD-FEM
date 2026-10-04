@@ -6,6 +6,7 @@
 
 #include "FEMActorFactory.h"
 #include "FEMActor.h"
+#include "AssetRegistry/AssetData.h"
 
 UFEMActorFactory::UFEMActorFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

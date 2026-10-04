@@ -2,7 +2,7 @@
 
 #if WITH_DEV_AUTOMATION_TESTS
 
-#include "FEMFXVectormath.h"
+#include "FEMFXVectorMath.h"
 #include "FEMMesh.h"
 #include "FEMMeshFactory.h"
 #include "HAL/FileManager.h"

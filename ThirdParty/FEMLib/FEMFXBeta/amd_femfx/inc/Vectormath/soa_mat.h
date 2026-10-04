@@ -1438,8 +1438,8 @@ namespace FmVectormath {
         template< class SoaNFloat > SOA_VECTORMATH_FORCE_INLINE SoaQuat<SoaNFloat>::SoaQuat(const SoaMatrix3<SoaNFloat> & tfrm)
         {
             SoaNFloat trace, radicand, scale, xx, yx, zx, xy, yy, zy, xz, yz, zz, tmpx, tmpy, tmpz, tmpw, qx, qy, qz, qw;
-            SoaNFloat::SoaBool negTrace, ZgtX, ZgtY, YgtX;
-            SoaNFloat::SoaBool largestXorY, largestYorZ, largestZorX;
+            typename SoaNFloat::SoaBool negTrace, ZgtX, ZgtY, YgtX;
+            typename SoaNFloat::SoaBool largestXorY, largestYorZ, largestZorX;
 
             xx = tfrm.getCol0().getX();
             yx = tfrm.getCol0().getY();

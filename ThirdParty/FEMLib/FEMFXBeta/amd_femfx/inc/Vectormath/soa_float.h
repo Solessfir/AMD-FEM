@@ -35,11 +35,17 @@
 #ifndef USE_SSE2
 #define USE_SSE2
 #endif
+#ifdef _WIN32
 #ifndef __AVX2__
 #define __AVX2__
 #endif
 #include "Math/sse_mathfun.h"
 #include "avx_mathfun.h"
+#elif defined(FEMFX_USE_UNREAL_MATH) && FEMFX_USE_UNREAL_MATH
+#include "Math/sse_mathfun.h"
+#else
+#include "sse_mathfun.h"
+#endif
 #pragma warning(pop)
 
 namespace FmVectormath {

@@ -321,7 +321,7 @@ struct FTetIdxToMaterial
 {
 	GENERATED_BODY()
 
-	UINT tetIndex;
+	uint32 tetIndex;
 
 };
 

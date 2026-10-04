@@ -29,6 +29,7 @@ THE SOFTWARE.
 #pragma once
 
 #include <stdint.h>
+#include <stddef.h>
 
 // Async threading dispatches work that detects completion and submits follow-up tasks.
 // Avoids possibility that waiting thread will stall execution, and simplifies task system interface.

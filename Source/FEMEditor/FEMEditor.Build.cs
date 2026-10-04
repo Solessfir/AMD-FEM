@@ -23,9 +23,11 @@ public class FEMEditor : ModuleRules
 			"Slate",
 			"SlateCore",
 			"AssetTools",
+			"AssetRegistry",
 			"Json",
 			"JsonUtilities",
 			"EditorStyle",
+			"PropertyEditor",
 			"MainFrame",
 			"InputCore"
 		});

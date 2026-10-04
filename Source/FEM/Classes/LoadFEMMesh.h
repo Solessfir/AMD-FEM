@@ -7,6 +7,7 @@
 #pragma once
 
 #include <vector>
+#include "CoreTypes.h"
 #include "FEMCommon.h"
 
 class LoadFEMMesh

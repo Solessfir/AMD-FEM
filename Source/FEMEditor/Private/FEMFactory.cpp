@@ -22,8 +22,9 @@
 #include "AssetTypeCategories.h"
 #include "Serialization/JsonSerializer.h"
 #include "Engine/World.h"
+#include "Engine/StaticMesh.h"
 #include "AMD_FEMFX.h"
-#include "FEMFXVectormath.h"
+#include "FEMFXVectorMath.h"
 
 UFEMFactory::UFEMFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

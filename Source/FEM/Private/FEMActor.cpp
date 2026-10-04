@@ -182,7 +182,9 @@ void AFEMActor::PostFEMLoad_Implementation()
 void AFEMActor::SetupRigidBodies_Implementation()
 {
     if (!IsValid(Scene) || !Scene->GetSceneBuffer() || rigidBodies.Num() > 0)
+    {
         return;
+    }
     
 	AMD::FmQuat quat = ConvertUnrealQuaternionToFEM(GetTransform().GetRotation());
 	AMD::FmMatrix3 rotation = AMD::FmMatrix3(quat);

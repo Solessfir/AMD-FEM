@@ -37,7 +37,12 @@ THE SOFTWARE.
 #define FM_ALIGN_END(x)
 #define FM_THREAD_LOCAL_STORAGE __declspec(thread)
 #else
-#error "Undefined"
+#define FM_FORCE_INLINE inline __attribute__((always_inline))
+#define FM_RESTRICT __restrict
+#define FM_ALIGN_OF(x) alignof(x)
+#define FM_ALIGN(x) alignas(x)
+#define FM_ALIGN_END(x)
+#define FM_THREAD_LOCAL_STORAGE thread_local
 #endif
 
 #ifdef _DEBUG

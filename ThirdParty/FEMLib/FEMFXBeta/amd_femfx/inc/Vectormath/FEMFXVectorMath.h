@@ -31,11 +31,14 @@ THE SOFTWARE.
 
 #include <math.h>
 #include <float.h>
+#include <stdio.h>
 
 // API derived from Sony Vectormath released with Bullet.
 // Adds public element access and mul() instead of operator* for more similarity with HLSL.
 // SSE version includes unions for element access.
+#ifdef _WIN32
 #define _VECTORMATH_DEBUG
+#endif
 #include "vectormath_aos.h"        // scalar math implementation
 #include "simd_vectormath_aos.h"   // SIMD implementation of AoS vectors
 #include "soa_vectormath.h"        // SoA vector and matrix types; can template by SoA fundamental type
@@ -46,8 +49,12 @@ THE SOFTWARE.
 
 #define FM_NORMALIZE_MAG_SQR_TOL 1.0e-30f
 
-#ifndef FM_FORCE_INLINE 
+#ifndef FM_FORCE_INLINE
+#ifdef _WIN32
 #define FM_FORCE_INLINE __forceinline
+#else
+#define FM_FORCE_INLINE inline __attribute__((always_inline))
+#endif
 #endif
 
 namespace AMD
@@ -136,7 +143,11 @@ namespace AMD
     };
 #endif
 
+#if SIMD_UTILS_USE_AVX
     typedef FmSoa8Types FmSoaTypes;
+#else
+    typedef FmSoa4Types FmSoaTypes;
+#endif
 
     template<class SoaTypes>
     static FM_FORCE_INLINE FmVector3 FmGetSlice(const typename SoaTypes::SoaVector3& vec, uint32_t sliceIdx)

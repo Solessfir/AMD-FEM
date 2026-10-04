@@ -10,6 +10,7 @@
 #include "UObject/ObjectMacros.h"
 #include "FEMCommon.h"
 #include <unordered_map>
+#include <vector>
 #include "RenderTetAssignment.generated.h"
 
 #define MAX_RENDER_VERT_TET_ASSIGNMENTS 2

@@ -11,7 +11,7 @@
 
 static float randfloat()
 {
-	return static_cast<float>(rand()) / RAND_MAX;
+	return static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
 }
 
 static float randfloat2()
