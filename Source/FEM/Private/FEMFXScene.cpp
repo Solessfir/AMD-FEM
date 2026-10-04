@@ -87,12 +87,18 @@ void AFEMFXScene::ResetScene_Implementation()
 
 bool AFEMFXScene::AllocateNewMesh(UFEMFXMeshComponent* meshComponent)
 {
+	if (bIsShuttingDown || !IsValid(meshComponent) || !meshComponent->GetTetMeshBuffer())
+		return false;
+
+	if (meshComponent->RegisteredScene)
+		return meshComponent->RegisteredScene == this;
+
 	if (!bIsInitialized)
 	{
 		Initialize();
 	}
 
-	if (!meshComponent->GetTetMeshBuffer())
+	if (!AMDFXSceneBuffer)
 	{
 		return false;
 	}
@@ -105,6 +111,8 @@ bool AFEMFXScene::AllocateNewMesh(UFEMFXMeshComponent* meshComponent)
 	}
 
 	m_ComponentsAllocated.Push(meshComponent);
+	meshComponent->RegisteredScene = this;
+	meshComponent->Scene = this;
 
 	meshComponent->SceneBufferIndex = m_ComponentsAllocated.Num() - 1;
 
@@ -116,7 +124,7 @@ bool AFEMFXScene::AllocateNewMesh(UFEMFXMeshComponent* meshComponent)
 void AFEMFXScene::Initialize()
 {
 
-	if (bIsInitialized)
+	if (bIsInitialized || bIsShuttingDown)
 		return;
 
 	AMD::SampleInitTaskSystem(NumWorkerThreads);
@@ -215,34 +223,29 @@ void AFEMFXScene::Initialize()
 
 void AFEMFXScene::RemoveActor(AFEMActor* actor)
 {
-	for (int i = 0; i < actor->MeshComponents.Num(); i++)
-	{
-		FreeComponent(Cast<UFEMFXMeshComponent>(actor->MeshComponents[i]));
-	}
-
-	actor->MeshComponents.Reset();
-
-	FEMActors.Remove(actor);
+	if (actor && actor->Scene == this)
+		actor->ReleaseSimulationResources();
 }
 
 
 void AFEMFXScene::FreeComponent(UFEMFXMeshComponent* comp)
 {
-	if (AMDFXSceneBuffer)
-	{
-		if (IsValid(comp))
-		{
-			AMD::FmRemoveTetMeshBufferFromScene(AMDFXSceneBuffer, comp->GetBufferId());
+	if (comp && (comp->RegisteredScene == this || (!comp->RegisteredScene && comp->Scene == this)))
+		comp->ReleaseSimulationResources();
+}
 
-			if (comp->GetTetMeshBuffer())
-			{
-                FmDestroyTetMeshBuffer(comp->GetTetMeshBuffer());
-			}
-		}
-	}
-	if (comp) {
-		m_ComponentsAllocated.Remove(comp);
-	}
+void AFEMFXScene::UnregisterComponent(UFEMFXMeshComponent* comp)
+{
+	if (comp->RegisteredScene != this)
+		return;
+
+	if (AMDFXSceneBuffer && comp->GetTetMeshBuffer())
+		AMD::FmRemoveTetMeshBufferFromScene(AMDFXSceneBuffer, comp->GetBufferId());
+
+	m_ComponentsAllocated.Remove(comp);
+	comp->RegisteredScene = nullptr;
+	if (comp->Scene == this)
+		comp->Scene = nullptr;
 }
 
 void AFEMFXScene::SetAllSleeping()
@@ -263,11 +266,11 @@ void AFEMFXScene::CreateSleepingGroup(const TArray<AActor*>& Actors)
         int NumActors = Actors.Num();
         for (int ActorIdx = 0; ActorIdx < NumActors; ++ActorIdx)
         {
-            if (Actors[ActorIdx]->IsA(AFEMActor::StaticClass()))
+            if (IsValid(Actors[ActorIdx]) && Actors[ActorIdx]->IsA(AFEMActor::StaticClass()))
             {
                 AFEMActor* FEMActor = Cast<AFEMActor>(Actors[ActorIdx]);
                 
-                if (FEMActor->Scene->GetSceneBuffer() == AMDFXSceneBuffer)
+                if (IsValid(FEMActor->Scene) && FEMActor->Scene->GetSceneBuffer() == AMDFXSceneBuffer)
                 {
                     FEMActor->AddObjectIds(TetMeshIds, RigidBodyIds);
                 }
@@ -293,48 +296,60 @@ void AFEMFXScene::AddToResetList(AActor* actor)
 
 void AFEMFXScene::AddRigidBodyToScene(AMD::FmRigidBody* inRigidBody)
 {
-    AMD::FmAddRigidBodyToScene(AMDFXSceneBuffer, inRigidBody);
+	if (inRigidBody && GetSceneBuffer())
+		AMD::FmAddRigidBodyToScene(AMDFXSceneBuffer, inRigidBody);
 }
 
 void AFEMFXScene::FreeScene()
 {
+	bIsShuttingDown = true;
+
+	const TArray<AFEMActor*> ActorsToRelease = FEMActors;
+	for (AFEMActor* Actor : ActorsToRelease)
+	{
+		if (Actor && Actor->Scene == this)
+			Actor->ReleaseSimulationResources();
+	}
+	FEMActors.Reset();
+
+	const TArray<UFEMFXMeshComponent*> ComponentsToRelease = m_ComponentsAllocated;
+	for (UFEMFXMeshComponent* Component : ComponentsToRelease)
+		FreeComponent(Component);
+	m_ComponentsAllocated.Reset();
+
 	if (AMDFXSceneBuffer)
 	{
-		for (int i = 0; i < m_ComponentsAllocated.Num(); ++i)
-		{
-			UFEMFXMeshComponent* comp = m_ComponentsAllocated[i];
-
-			if (comp && comp->GetTetMeshBuffer())
-			{
-                FmDestroyTetMeshBuffer(comp->GetTetMeshBuffer());
-			}
-		}
+		AMD::FmCollisionReport& CollisionReport = AMD::FmGetSceneCollisionReportRef(AMDFXSceneBuffer);
+		delete[] CollisionReport.distanceContactBuffer;
+		CollisionReport.distanceContactBuffer = nullptr;
 
         FmDestroyScene(AMDFXSceneBuffer);
 
 		AMDFXSceneBuffer = nullptr;
 	}
+
+	bIsInitialized = false;
+	timeElapsed = 0.0f;
+	ConditionCheckedMeshes.Reset();
 }
 
 void AFEMFXScene::Destroyed()
 {
-	Super::Destroyed();
-
 	FreeScene();
+	Super::Destroyed();
 }
 
 // Called when the game starts or when spawned
 void AFEMFXScene::BeginPlay()
 {
+	bIsShuttingDown = false;
 	Super::BeginPlay();
 }
 
 void AFEMFXScene::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	Super::EndPlay(EndPlayReason);
-
 	FreeScene();
-	//RemoveFromRoot();
+	Super::EndPlay(EndPlayReason);
 }
 
 void AFEMFXScene::Tick(float DeltaTime)
@@ -344,11 +359,14 @@ void AFEMFXScene::Tick(float DeltaTime)
 
 	Super::Tick(DeltaTime);
 
-	if (!bAllowTick)
+	if (!bAllowTick || bIsShuttingDown)
 		return;
 
 	if (!bIsInitialized)
 		Initialize();
+
+	if (!AMDFXSceneBuffer)
+		return;
 
 	timeElapsed += DeltaTime;
 
@@ -375,15 +393,20 @@ void AFEMFXScene::Tick(float DeltaTime)
 	{
         FmUpdateScene(AMDFXSceneBuffer, timestep);
 
-        for (int i = 0; i < FEMActors.Num(); ++i)
+		const TArray<AFEMActor*> ActorsToUpdate = FEMActors;
+        for (AFEMActor* Actor : ActorsToUpdate)
         {
-            if (IsValid(FEMActors[i]))
+            if (IsValid(Actor) && Actor->Scene == this)
             {
-                FEMActors[i]->UpdateConstraints();
+                Actor->UpdateConstraints();
+				if (bIsShuttingDown || !AMDFXSceneBuffer)
+					return;
             }
         }
 
         UpdateRenderingDataFromFracture();
+		if (bIsShuttingDown || !AMDFXSceneBuffer)
+			return;
 	}
 
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FEMScene_UpdateSimData);
@@ -393,6 +416,7 @@ void AFEMFXScene::Tick(float DeltaTime)
     AMD::FmCollisionReport& CollisionReport = FmGetSceneCollisionReportRef(AMDFXSceneBuffer);
 	if (CollisionReport.numDistanceContacts.val > 0)
 	{
+		const TArray<UFEMFXMeshComponent*> CollisionComponents = m_ComponentsAllocated;
 		for (AMD::uint i = 0; i < CollisionReport.numDistanceContacts.val; ++i)
 		{
 			FEMCollision colA;
@@ -401,17 +425,20 @@ void AFEMFXScene::Tick(float DeltaTime)
 			UFEMFXMeshComponent* compA = nullptr;
 			UFEMFXMeshComponent* compB = nullptr;
 
-			for (int j = 0; j < m_ComponentsAllocated.Num(); ++j)
+			for (UFEMFXMeshComponent* Component : CollisionComponents)
 			{
+				if (!IsValid(Component) || Component->RegisteredScene != this || !Component->GetTetMeshBuffer())
+					continue;
+
 				AMD::FmTetMesh* tetMeshA = AMD::FmGetTetMesh(*AMDFXSceneBuffer, CollisionReport.distanceContactBuffer[i].objectIdA);
 				AMD::FmTetMesh* tetMeshB = AMD::FmGetTetMesh(*AMDFXSceneBuffer, CollisionReport.distanceContactBuffer[i].objectIdB);
 				
 				if (tetMeshA == nullptr || tetMeshB == nullptr)
 					continue;
 
-				if (m_ComponentsAllocated[j]->GetBufferId() == FmGetTetMeshBufferId(*tetMeshA))
+				if (Component->GetBufferId() == FmGetTetMeshBufferId(*tetMeshA))
 				{
-					compA = m_ComponentsAllocated[j];
+					compA = Component;
 					AMD::FmVector3 temp = CollisionReport.distanceContactBuffer[i].normal;
 
 					uint32 tetId = CollisionReport.distanceContactBuffer[i].tetIdA;
@@ -434,9 +461,9 @@ void AFEMFXScene::Tick(float DeltaTime)
 					colA.BarCentricPositions[2] = baryPos[2];
 					colA.BarCentricPositions[3] = baryPos[3];
 				}
-				else if (m_ComponentsAllocated[j]->GetBufferId() == FmGetTetMeshBufferId(*tetMeshB))
+				else if (Component->GetBufferId() == FmGetTetMeshBufferId(*tetMeshB))
 				{
-					compB = m_ComponentsAllocated[j];
+					compB = Component;
 					AMD::FmVector3 temp = CollisionReport.distanceContactBuffer[i].normal;
 					
 					uint32 tetId = CollisionReport.distanceContactBuffer[i].tetIdB;
@@ -462,17 +489,35 @@ void AFEMFXScene::Tick(float DeltaTime)
 				if (compA != nullptr && compB != nullptr)
 					break;
 			}
-			if (compA != nullptr) 
+			if (IsValid(compA) && compA->RegisteredScene == this)
 			{
 				colA.OtherComponent = compB;
 				compA->OnHit(colA);
-				compA->CollisionEvent.Broadcast(colA);
+				if (bIsShuttingDown || !AMDFXSceneBuffer)
+					return;
+
+				if (IsValid(compA) && compA->RegisteredScene == this)
+				{
+					colA.OtherComponent = IsValid(compB) && compB->RegisteredScene == this ? compB : nullptr;
+					compA->CollisionEvent.Broadcast(colA);
+					if (bIsShuttingDown || !AMDFXSceneBuffer)
+						return;
+				}
 			}
-			if (compB != nullptr)
+			if (IsValid(compB) && compB->RegisteredScene == this)
 			{
-				colB.OtherComponent = compA;
+				colB.OtherComponent = IsValid(compA) && compA->RegisteredScene == this ? compA : nullptr;
 				compB->OnHit(colB);
-				compB->CollisionEvent.Broadcast(colB);
+				if (bIsShuttingDown || !AMDFXSceneBuffer)
+					return;
+
+				if (IsValid(compB) && compB->RegisteredScene == this)
+				{
+					colB.OtherComponent = IsValid(compA) && compA->RegisteredScene == this ? compA : nullptr;
+					compB->CollisionEvent.Broadcast(colB);
+					if (bIsShuttingDown || !AMDFXSceneBuffer)
+						return;
+				}
 			}
 		}
 	}
@@ -483,7 +528,7 @@ void AFEMFXScene::Tick(float DeltaTime)
 
 AMD::FmScene* AFEMFXScene::GetSceneBuffer()
 {
-	if (!bIsInitialized)
+	if (!bIsInitialized && !bIsShuttingDown)
 		Initialize();
 
 	return AMDFXSceneBuffer;
@@ -491,25 +536,17 @@ AMD::FmScene* AFEMFXScene::GetSceneBuffer()
 
 void AFEMFXScene::UpdateRenderingDataFromFracture()
 {
-	UWorld* World = GetWorld();
+	if (!GetWorld() || bIsShuttingDown || !AMDFXSceneBuffer)
+		return;
 
-	if (World)
+	const TArray<UFEMFXMeshComponent*> ComponentsToUpdate = m_ComponentsAllocated;
+	for (UFEMFXMeshComponent* Component : ComponentsToUpdate)
 	{
-		AMD::uint NumTetMeshBuffers = m_ComponentsAllocated.Num();
-
-		for (AMD::uint i = 0; i < NumTetMeshBuffers; i++)
+		if (IsValid(Component) && Component->RegisteredScene == this && IsValid(Component->FEMMesh))
 		{
-			if (i >= (AMD::uint)m_ComponentsAllocated.Num())
-			{
-				continue;
-			}
-			if (!m_ComponentsAllocated[i]->IsPendingKill())
-			{
-				if (!IsValid(m_ComponentsAllocated[i]->FEMMesh))
-					continue;
-
-				m_ComponentsAllocated[i]->UpdateRenderingDataFromFracture();
-			}
+			Component->UpdateRenderingDataFromFracture();
+			if (bIsShuttingDown || !AMDFXSceneBuffer)
+				return;
 		}
 	}
 }

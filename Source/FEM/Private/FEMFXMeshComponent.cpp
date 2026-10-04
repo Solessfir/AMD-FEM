@@ -528,12 +528,14 @@ UFEMFXMeshComponent::UFEMFXMeshComponent(const FObjectInitializer& ObjectInitial
 
 unsigned int UFEMFXMeshComponent::GetBufferId()
 {
-	return AMD::FmGetTetMeshBufferId(*TetMeshBuffer);
+	return TetMeshBuffer ? AMD::FmGetTetMeshBufferId(*TetMeshBuffer) : FM_INVALID_ID;
 }
 
 
 void UFEMFXMeshComponent::SetTetMaterial_NoFracture(UFEMFXTetMeshParameters* newParameters, int TetId, int NoFractureFaces)
 {
+	if (!TetMeshBuffer || !IsValid(Scene) || !Scene->GetSceneBuffer())
+		return;
 
 	UFEMFXTetMeshParameters* temp = newParameters;// .GetDefaultObject();
 
@@ -564,6 +566,8 @@ void UFEMFXMeshComponent::SetTetMaterial_NoFracture(UFEMFXTetMeshParameters* new
 
 void UFEMFXMeshComponent::SetTetMaterial(UFEMFXTetMeshParameters* newParameters, int TetId)
 {
+	if (!TetMeshBuffer || !IsValid(Scene) || !Scene->GetSceneBuffer())
+		return;
 
 	UFEMFXTetMeshParameters* temp = newParameters;// .GetDefaultObject();
 
@@ -593,7 +597,7 @@ void UFEMFXMeshComponent::SetTetMaterial(UFEMFXTetMeshParameters* newParameters,
 
 void UFEMFXMeshComponent::SetTetMeshMaterial(UFEMFXTetMeshParameters* newParameters, float plasticAttenuation)
 {
-	if (GetTetMeshBuffer() == nullptr)
+	if (!TetMeshBuffer || !IsValid(newParameters) || !IsValid(Scene) || !Scene->GetSceneBuffer())
 	{
 		return;
 	}
@@ -620,6 +624,8 @@ void UFEMFXMeshComponent::SetTetMeshMaterial(UFEMFXTetMeshParameters* newParamet
 
 float UFEMFXMeshComponent::GetDestructionValue()
 {
+	if (!TetMesh)
+		return 0.0f;
 
 	float totalDamage = 0;
 
@@ -701,6 +707,8 @@ void UFEMFXMeshComponent::BeginPlay()
 //It only does position for now
 void UFEMFXMeshComponent::SetTetMeshPositionAndRotation(FVector position, FRotator rotation)
 {
+	if (!TetMesh)
+		return;
 	AMD::FmVector3 newPos = ConvertUnrealToFEMFXVector(position) / 100;
 
     AMD::FmResetFromRestPositions(nullptr, TetMesh, AMD::FmMatrix3::identity(), newPos);
@@ -708,33 +716,49 @@ void UFEMFXMeshComponent::SetTetMeshPositionAndRotation(FVector position, FRotat
 
 void UFEMFXMeshComponent::CleanUpAfterImport()
 {
-	CleanResources();
-
-    if (TetMeshBuffer)
-    {
-        FmAlignedFree(TetMeshBuffer);
-    }
-	TetMeshBuffer = nullptr;
-
-	TetMesh = nullptr;
+	ReleaseSimulationResources();
 }
 
 void UFEMFXMeshComponent::CleanResources()
 {
-	delete RestPositions;
+	delete[] RestPositions;
 	RestPositions = nullptr;
 
-	delete TetVertIds;
+	delete[] TetVertIds;
 	TetVertIds = nullptr;
 
-    AMD::FmDestroyBvh(BvHierarchy);
+	if (BvHierarchy)
+		AMD::FmDestroyBvh(BvHierarchy);
 	BvHierarchy = nullptr;
+}
+
+void UFEMFXMeshComponent::ReleaseSimulationResources()
+{
+	if (RegisteredScene)
+		RegisteredScene->UnregisterComponent(this);
+
+	if (TetMeshBuffer)
+		AMD::FmDestroyTetMeshBuffer(TetMeshBuffer);
+
+	TetMeshBuffer = nullptr;
+	TetMesh = nullptr;
+	Scene = nullptr;
+	ResourceInitialized = false;
+	CleanResources();
+}
+
+void UFEMFXMeshComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	ReleaseSimulationResources();
+	Super::EndPlay(EndPlayReason);
 }
 
 void UFEMFXMeshComponent::LoadResource()
 {
 	if (EditorOnly)
 		return;
+
+	CleanResources();
 
 	RestPositions = new AMD::FmVector3[FEMMesh->GetComponentResource().NumVerts];
 	FMemory::Memcpy(RestPositions, FEMMesh->GetComponentResource().restPositions.GetData(), sizeof(AMD::FmVector3) * FEMMesh->GetComponentResource().NumVerts);
@@ -750,7 +774,7 @@ void UFEMFXMeshComponent::LoadResource()
 
 void UFEMFXMeshComponent::LoadSimObject()
 {
-	if (EditorOnly)
+	if (EditorOnly || TetMeshBuffer || !RestPositions || !TetVertIds)
 		return;
 
 	int MaxVerts = MAX_VERTS_PER_MESH_BUFFER;
@@ -812,10 +836,16 @@ void UFEMFXMeshComponent::LoadSimObject()
     tetMeshParams.isKinematic = Kinematic;
     tetMeshParams.collisionGroup = FEMMesh->GetComponentResource().CollisionGroup;
 
-    TetMeshBuffer = FmCreateTetMeshBuffer(tetMeshParams, fractureGroupCounts, tetFractureGroupIds, &TetMesh);
+	TetMeshBuffer = FmCreateTetMeshBuffer(tetMeshParams, fractureGroupCounts, tetFractureGroupIds, &TetMesh);
 
     delete[] fractureGroupCounts;
     delete[] tetFractureGroupIds;
+	if (!TetMeshBuffer || !TetMesh)
+	{
+		delete[] vertIncidentTets;
+		ReleaseSimulationResources();
+		return;
+	}
 
 	AMD::FmTetMesh& tetMesh = *TetMesh;
 	FQuat rot = GetComponentQuat();
@@ -850,11 +880,14 @@ void UFEMFXMeshComponent::LoadSimObject()
 
 	AMD::FmSetMassesFromRestDensities(&tetMesh);
 
-    if (!AMD::FmInitConnectivity(&tetMesh, vertIncidentTets))
+    const bool bConnectivityInitialized = AMD::FmInitConnectivity(&tetMesh, vertIncidentTets);
+    delete[] vertIncidentTets;
+    if (!bConnectivityInitialized)
     {
         FString debugString = "InitConnectivity failed for " + Name + ".  Model has more than the max number of tets incident on a vertex (" + FString::FromInt(FM_MAX_VERT_INCIDENT_TETS) + ")";
         GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, debugString);
         UE_LOG(FEMLog, Error, TEXT("InitConnectivity failed for %s.  Model has more than the max number of tets incident on a vertex (%u)"), *Name, FM_MAX_VERT_INCIDENT_TETS);
+		ReleaseSimulationResources();
         return;
     }
 
@@ -982,6 +1015,8 @@ FNameIndexMap UFEMFXMeshComponent::GetTagByName(FString TagName)
 FTetVertex UFEMFXMeshComponent::GetTetVertById(int id, int subTetMesh)
 {
 	FTetVertex vert = FTetVertex();
+	if (!TetMeshBuffer)
+		return vert;
 
 	vert = CreateTetVertex(AMD::FmGetTetMesh(*TetMeshBuffer, subTetMesh), id);
 
@@ -991,6 +1026,8 @@ FTetVertex UFEMFXMeshComponent::GetTetVertById(int id, int subTetMesh)
 TArray<FTetInfo> UFEMFXMeshComponent::GetTetsByTag(FString tagName)
 {
 	TArray<FTetInfo> tets;
+	if (!TetMesh)
+		return tets;
 	FNameIndexMap tag = GetTagByName(tagName);
 
 	for (int i = 0; i < tag.TetIds.Num(); ++i)
@@ -1010,8 +1047,6 @@ AMD::FmTetMesh* UFEMFXMeshComponent::GetTetMeshPtr()
 #ifdef WITH_EDITOR
 void UFEMFXMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	//Super::PostEditChangeProperty(PropertyChangedEvent);
-
 	if (PropertyChangedEvent.Property)
 	{
 		const FName MemberPropName = PropertyChangedEvent.Property->GetFName();
@@ -1020,11 +1055,15 @@ void UFEMFXMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& Property
 			MeshParameters["Default"] = MeshParameters["Default"];
 		}
 	}
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 #endif
 
 void UFEMFXMeshComponent::UpdateRenderingDataFromFracture()
 {
+	if (!TetMeshBuffer || !IsValid(FEMMesh))
+		return;
 	TArray<FFEMFracture> FractureData;
 
 	// Iterate over sub-meshes of the tet mesh buffer, to add new faces created during fracture
@@ -1162,6 +1201,8 @@ TArray<FTetQueryData> UFEMFXMeshComponent::ApplyExplosionForce(const FVector& or
 	float speed, float timestep, float timeSinceDetonated)
 {
 	TArray<FTetQueryData> returnData;
+	if (!TetMeshBuffer || !IsValid(Scene) || !Scene->GetSceneBuffer())
+		return returnData;
 
 	float innerRadius = speed * timeSinceDetonated;
 	float outerRadius = speed * (timeSinceDetonated + timestep);
@@ -1269,6 +1310,8 @@ void UFEMFXMeshComponent::CreateFEMMeshFromTetMesh()
 
 void UFEMFXMeshComponent::Reset(FTransform startTrans)
 {
+	if (!TetMesh || !IsValid(Scene) || !Scene->GetSceneBuffer())
+		return;
 	AMD::FmVector3 pos = ConvertUnrealToFEMFXVector(startTrans.GetTranslation()) / 100;
 	FRotator Rotation = startTrans.Rotator();
 	FVector temp = Rotation.RotateVector(FVector(1.0, 0.0, 0.0));
@@ -1292,6 +1335,8 @@ void UFEMFXMeshComponent::Reset(FTransform startTrans)
 
 TArray<FTetQueryData> UFEMFXMeshComponent::TetMeshRadialQuery(FVector Pos, FVector Dir, float Radius)
 {
+	if (!TetMeshBuffer)
+		return {};
 
 	AMD::FmVector3 Position = ConvertUnrealToFEMFXVector(Pos) / 100;
 	AMD::FmVector3 Direction = ConvertUnrealToFEMFXVector(Dir);
@@ -1350,6 +1395,8 @@ AMD::FmTetMeshBuffer* UFEMFXMeshComponent::GetTetMeshBuffer()
 
 FVector UFEMFXMeshComponent::GetVertPositionByIndex(int index, int subMeshIndex)
 {
+	if (!TetMeshBuffer)
+		return FVector::ZeroVector;
 	AMD::FmTetMesh* tetMesh = AMD::FmGetTetMesh(*TetMeshBuffer, subMeshIndex);
 	AMD::FmVector3 tempVec;
 	if (tetMesh == nullptr)
@@ -1373,6 +1420,8 @@ FVector UFEMFXMeshComponent::GetVertPositionByIndex(int index, int subMeshIndex)
 
 FVector UFEMFXMeshComponent::GetTetMeshCenterOfMass(int subMeshIndex)
 {
+	if (!TetMeshBuffer)
+		return FVector::ZeroVector;
 	AMD::FmTetMesh* tetMesh = AMD::FmGetTetMesh(*TetMeshBuffer, subMeshIndex);
 	AMD::FmVector3 tempVec;
 	if (tetMesh == nullptr)
@@ -1473,6 +1522,8 @@ void UFEMFXMeshComponent::PostEditSceneProxyUpdate() const
 
 void UFEMFXMeshComponent::UpdateSceneProxy()
 {
+	if (!TetMeshBuffer)
+		return;
 	FFEMTetMeshRenderData RenderData;
 
 	FBox FEMMeshBox;
@@ -1550,6 +1601,8 @@ void UFEMFXMeshComponent::UpdateSceneProxy()
 
 void UFEMFXMeshComponent::ResetFromRestPosition(FTransform transform, FVector velocity)
 {
+	if (!TetMesh || !IsValid(Scene) || !Scene->GetSceneBuffer())
+		return;
 
 	FRotator rot = transform.Rotator();
 	FVector position = transform.GetTranslation();
@@ -1779,19 +1832,8 @@ FBoxSphereBounds UFEMFXMeshComponent::CalcBounds(const FTransform& LocalToWorld)
 
 void UFEMFXMeshComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 {
-	
-	/*if (IsValid(Scene))
-	{
-		Scene->FreeComponent(this);
-	}*/
-
-	/*if (RestPositions)
-		delete[] RestPositions;
-	if (TetVertIds)
-		delete[] TetVertIds;
-	if(BvHierarchy)
-		delete[] BvHierarchy;*/
-
+	ReleaseSimulationResources();
+	Super::OnComponentDestroyed(bDestroyingHierarchy);
 }
 
 void UFEMFXMeshComponent::UpdateCollision()
@@ -1801,7 +1843,7 @@ void UFEMFXMeshComponent::UpdateCollision()
 
 void UFEMFXMeshComponent::SetTetKinematic(int TetId, bool IsKinematic, bool IsRemovable, FVector KinematicVelocity)
 {
-	if ((int)FmGetNumTets(*GetTetMeshPtr()) <= TetId) return;
+	if (!TetMesh || TetId < 0 || (int)FmGetNumTets(*TetMesh) <= TetId) return;
 
     AMD::FmTetVertIds TetVerts = AMD::FmGetTetVertIds(*GetTetMeshPtr(), TetId);
 

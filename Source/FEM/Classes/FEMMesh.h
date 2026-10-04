@@ -103,13 +103,13 @@ public:
 	ProceduralMeshOptions()
 	{
 		Randomize = false;
-		NumCubesX = 0;
-		NumCubesY = 0;
-		NumCubesZ = 0;
-		CubeX = 0;
-		CubeY = 0;
-		CubeZ = 0;
-		Scale = 0;
+		NumCubesX = 1;
+		NumCubesY = 1;
+		NumCubesZ = 1;
+		CubeX = 1.0f;
+		CubeY = 1.0f;
+		CubeZ = 1.0f;
+		Scale = 1.0f;
 		IsWoodPanel = false;
 
 	}
@@ -150,7 +150,8 @@ public:
 	FFEMFXMeshSection* CreateMeshSection(UStaticMesh* mesh, AMD::FmTetMeshBuffer* tetMeshBuffer, AMD::FmBvh* BvHierarchy, int sectionIdx);
 	FFEMFXMeshSection* CreateMeshSectionFromFEMFile(AMD::FmTetMeshBuffer* tetMeshBuffer, AMD::FmBvh* BvHierarchy, int sectionIdx);
 	
-	void CreateProceduralMesh(ProceduralMeshOptions options);
+	static bool ValidateProceduralMeshOptions(const ProceduralMeshOptions& options);
+	bool CreateProceduralMesh(ProceduralMeshOptions options);
 
 	AMD::FmTetMeshBuffer* LoadTempBuffer(AMD::FmVector3* RestPositions, int NumTets, int NumVerts, AMD::FmTetVertIds* TetVertIds, bool FractureEnabled);
 

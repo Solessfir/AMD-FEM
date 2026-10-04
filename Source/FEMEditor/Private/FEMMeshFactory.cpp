@@ -6,16 +6,25 @@
 #include "Widgets/Layout/SUniformGridPanel.h"
 #include "Interfaces/IMainFrameModule.h"
 #include "AssetTypeCategories.h"
+#include "Misc/ConfigCacheIni.h"
+#include "UObject/StrongObjectPtr.h"
 
 #define LOCTEXT_NAMESPACE "FEMMeshFactory"
 
 UFEMMeshImportData::UFEMMeshImportData(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	bProceduralGenerate = true;
+	Randomize = false;
+	NumCubesX = NumCubesY = NumCubesZ = 1;
+	CubeX = CubeY = CubeZ = 1.0f;
+	Scale = 1.0f;
+	IsWoodPanel = false;
 }
 
-void UFEMMeshImportData::CopyFrom(UFEMMeshImportData* Other)
+void UFEMMeshImportData::CopyFrom(const UFEMMeshImportData* Other)
 {
+	bProceduralGenerate = Other->bProceduralGenerate;
 	Randomize = Other->Randomize;
 	NumCubesX = Other->NumCubesX;
 	NumCubesY = Other->NumCubesY;
@@ -33,158 +42,39 @@ void UFEMMeshImportData::CopyFrom(UFEMMeshImportData* Other)
 
 void UFEMMeshImportData::LoadOptions()
 {
-	int32 PortFlags = 0;
-
-	for (FProperty* Property = GetClass()->PropertyLink; Property; Property = Property->PropertyLinkNext)
-	{
-		if (!Property->HasAnyPropertyFlags(CPF_Config))
-		{
-			continue;
-		}
-		FString Section = TEXT("FEMMesh_Import_UI_Option_") + GetClass()->GetName();
-		FString Key = Property->GetName();
-
-		const bool bIsPropertyInherited = Property->GetOwnerClass() != GetClass();
-		UObject* SuperClassDefaultObject = GetClass()->GetSuperClass()->GetDefaultObject();
-
-		const FString& PropFileName = GEditorPerProjectIni;
-
-		FArrayProperty* Array = CastField<FArrayProperty>(Property);
-		if (Array)
-		{
-			FConfigSection* Sec = GConfig->GetSectionPrivate(*Section, 0, 1, *GEditorPerProjectIni);
-			if (Sec != nullptr)
-			{
-				TArray<FConfigValue> List;
-				const FName KeyName(*Key, FNAME_Find);
-				Sec->MultiFind(KeyName, List);
-
-				FScriptArrayHelper_InContainer ArrayHelper(Array, this);
-				// Only override default properties if there is something to override them with.
-				if (List.Num() > 0)
-				{
-					ArrayHelper.EmptyAndAddValues(List.Num());
-					for (int32 i = List.Num() - 1, c = 0; i >= 0; i--, c++)
-					{
-						Array->Inner->ImportText(*List[i].GetValue(), ArrayHelper.GetRawPtr(c), PortFlags, this);
-					}
-				}
-				else
-				{
-					int32 Index = 0;
-					const FConfigValue* ElementValue = nullptr;
-					do
-					{
-						// Add array index number to end of key
-						FString IndexedKey = FString::Printf(TEXT("%s[%i]"), *Key, Index);
-
-						// Try to find value of key
-						const FName IndexedName(*IndexedKey, FNAME_Find);
-						if (IndexedName == NAME_None)
-						{
-							break;
-						}
-						ElementValue = Sec->Find(IndexedName);
-
-						// If found, import the element
-						if (ElementValue != nullptr)
-						{
-							// expand the array if necessary so that Index is a valid element
-							ArrayHelper.ExpandForIndex(Index);
-							Array->Inner->ImportText(*ElementValue->GetValue(), ArrayHelper.GetRawPtr(Index), PortFlags, this);
-						}
-
-						Index++;
-					} while (ElementValue || Index < ArrayHelper.Num());
-				}
-			}
-		}
-		else
-		{
-			for (int32 i = 0; i < Property->ArrayDim; i++)
-			{
-				if (Property->ArrayDim != 1)
-				{
-					Key = FString::Printf(TEXT("%s[%i]"), *Property->GetName(), i);
-				}
-
-				FString Value;
-				bool bFoundValue = GConfig->GetString(*Section, *Key, Value, *GEditorPerProjectIni);
-
-				if (bFoundValue)
-				{
-					if (Property->ImportText(*Value, Property->ContainerPtrToValuePtr<uint8>(this, i), PortFlags, this) == nullptr)
-					{
-						// this should be an error as the properties from the .ini / .int file are not correctly being read in and probably are affecting things in subtle ways
-						UE_LOG(LogTemp, Error, TEXT("FEMMesh Options LoadOptions (%s): failed for %s in: %s"), *GetPathName(), *Property->GetName(), *Value);
-					}
-				}
-			}
-		}
-	}
+	LoadConfig();
 }
 
 void UFEMMeshImportData::SaveOptions()
 {
-	int32 PortFlags = 0;
-
-	for (FProperty* Property = GetClass()->PropertyLink; Property; Property = Property->PropertyLinkNext)
-	{
-		if (!Property->HasAnyPropertyFlags(CPF_Config))
-		{
-			continue;
-		}
-		FString Section = TEXT("FEMMesh_Import_UI_Option_") + GetClass()->GetName();
-		FString Key = Property->GetName();
-
-		const bool bIsPropertyInherited = Property->GetOwnerClass() != GetClass();
-		UObject* SuperClassDefaultObject = GetClass()->GetSuperClass()->GetDefaultObject();
-
-		FArrayProperty* Array = CastField<FArrayProperty>(Property);
-		if (Array)
-		{
-			FConfigSection* Sec = GConfig->GetSectionPrivate(*Section, 1, 0, *GEditorPerProjectIni);
-			check(Sec);
-			Sec->Remove(*Key);
-
-			FScriptArrayHelper_InContainer ArrayHelper(Array, this);
-			for (int32 i = 0; i < ArrayHelper.Num(); i++)
-			{
-				FString	Buffer;
-				Array->Inner->ExportTextItem(Buffer, ArrayHelper.GetRawPtr(i), ArrayHelper.GetRawPtr(i), this, PortFlags);
-				Sec->Add(*Key, *Buffer);
-			}
-		}
-		else
-		{
-			TCHAR TempKey[MAX_SPRINTF] = TEXT("");
-			for (int32 Index = 0; Index < Property->ArrayDim; Index++)
-			{
-				if (Property->ArrayDim != 1)
-				{
-					FCString::Sprintf(TempKey, TEXT("%s[%i]"), *Property->GetName(), Index);
-					Key = TempKey;
-				}
-
-				FString	Value;
-				Property->ExportText_InContainer(Index, Value, this, this, this, PortFlags);
-				GConfig->SetString(*Section, *Key, *Value, *GEditorPerProjectIni);
-			}
-		}
-	}
-	GConfig->Flush(0);
+	SaveConfig(CPF_Config, nullptr, GConfig, false);
 }
 
+
+static ProceduralMeshOptions GetProceduralOptions(const UFEMMeshImportData& Data)
+{
+	ProceduralMeshOptions Options;
+	Options.Randomize = Data.Randomize;
+	Options.NumCubesX = Data.NumCubesX;
+	Options.NumCubesY = Data.NumCubesY;
+	Options.NumCubesZ = Data.NumCubesZ;
+	Options.CubeX = Data.CubeX;
+	Options.CubeY = Data.CubeY;
+	Options.CubeZ = Data.CubeZ;
+	Options.Scale = Data.Scale;
+	Options.IsWoodPanel = Data.IsWoodPanel;
+	return Options;
+}
 
 /** UI to pick options when importing  FEMMesh */
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 class SFEMMeshImportOptions : public SCompoundWidget
 {
 public:
-	UFEMMeshImportData* FEMMeshImportData;
+	TStrongObjectPtr<UFEMMeshImportData> FEMMeshImportData;
 
 	/** Whether we should go ahead with import */
-	bool							bImport;
+	bool bImport = false;
 
 	// Window That Owns Us
 	TSharedPtr<SWindow> WidgetWindow;
@@ -203,8 +93,7 @@ public:
 	SFEMMeshImportOptions()
 	{
 		DetailsView = nullptr;
-		FEMMeshImportData = NewObject<UFEMMeshImportData>();
-		FEMMeshImportData->LoadConfig();
+		FEMMeshImportData.Reset(NewObject<UFEMMeshImportData>());
 	}
 
 	void Construct(const FArguments& InArgs)
@@ -269,6 +158,7 @@ public:
 							[
 								SNew(SButton)
 								.Text(LOCTEXT("SpeedTreeOptionWindow_Import", "Import"))
+								.IsEnabled(this, &SFEMMeshImportOptions::CanImport)
 								.OnClicked(this, &SFEMMeshImportOptions::OnImport)
 							]
 							+ SUniformGridPanel::Slot(1, 0)
@@ -287,7 +177,12 @@ public:
 		DetailsViewArgs.NameAreaSettings = FDetailsViewArgs::HideNameArea;
 		DetailsView = PropertyEditorModule.CreateDetailView(DetailsViewArgs);
 		InspectorBox->SetContent(DetailsView->AsShared());
-		DetailsView->SetObject(FEMMeshImportData);
+		DetailsView->SetObject(FEMMeshImportData.Get());
+	}
+
+	bool CanImport() const
+	{
+		return FEMMeshImportData->bProceduralGenerate && UFEMMesh::ValidateProceduralMeshOptions(GetProceduralOptions(*FEMMeshImportData));
 	}
 
 	/** If we should import */
@@ -299,8 +194,11 @@ public:
 	/** Called when 'OK' button is pressed */
 	FReply OnImport()
 	{
-		bImport = true;
-		WidgetWindow->RequestDestroyWindow();
+		if (CanImport())
+		{
+			bImport = true;
+			WidgetWindow->RequestDestroyWindow();
+		}
 		return FReply::Handled();
 	}
 
@@ -308,8 +206,8 @@ public:
 	{
 		if (DetailsView.IsValid())
 		{
-			FEMMeshImportData->LoadConfig();
-			DetailsView->SetObject(FEMMeshImportData, true);
+			FEMMeshImportData->CopyFrom(GetDefault<UFEMMeshImportData>());
+			DetailsView->SetObject(FEMMeshImportData.Get(), true);
 		}
 		return FReply::Handled();
 	}
@@ -341,7 +239,6 @@ UFEMMeshFactory::UFEMMeshFactory(const FObjectInitializer& ObjectInitializer)
 UObject* UFEMMeshFactory::FactoryCreateNew(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn, FName CallingContext)
 {
 	TSharedPtr<SWindow> ParentWindow;
-	// Check if the main frame is loaded.  When using the old main frame it may not be.
 	if (FModuleManager::Get().IsModuleLoaded("MainFrame"))
 	{
 		IMainFrameModule& MainFrame = FModuleManager::LoadModuleChecked<IMainFrameModule>("MainFrame");
@@ -349,39 +246,37 @@ UObject* UFEMMeshFactory::FactoryCreateNew(UClass* InClass, UObject* InParent, F
 	}
 
 	TSharedPtr<SFEMMeshImportOptions> Options;
-
 	TSharedRef<SWindow> Window = SNew(SWindow)
 		.Title(LOCTEXT("WindowTitle", "FEM Options"))
 		.SizingRule(ESizingRule::Autosized);
-
-	UFEMMeshImportData* ExistingImportData = nullptr;
-
-	Window->SetContent(SAssignNew(Options, SFEMMeshImportOptions).WidgetWindow(Window).ReimportAssetData(ExistingImportData));
+	Window->SetContent(SAssignNew(Options, SFEMMeshImportOptions).WidgetWindow(Window));
 	FSlateApplication::Get().AddModalWindow(Window, ParentWindow, false);
-
-	UFEMMesh* Mesh = nullptr;
-	ProceduralMeshOptions procOptions;
-	if (Options->ShouldImport())
+	if (!Options->ShouldImport())
 	{
-		Options->FEMMeshImportData->SaveOptions();
-		UFEMMeshImportData* data = Options->FEMMeshImportData;
-
-		procOptions.NumCubesX = data->NumCubesX;
-		procOptions.NumCubesY = data->NumCubesY;
-		procOptions.NumCubesZ = data->NumCubesZ;
-
-		procOptions.CubeX = data->CubeX;
-		procOptions.CubeY = data->CubeY;
-		procOptions.CubeZ = data->CubeZ;
-
-		procOptions.Scale = data->Scale;
-		procOptions.IsWoodPanel = data->IsWoodPanel;
-
-		Mesh = NewObject<UFEMMesh>(InParent, InClass, InName, Flags);
-		Mesh->CreateProceduralMesh(procOptions);
+		return nullptr;
 	}
 
+	UFEMMesh* Mesh = CreateMesh(InClass, InParent, InName, Flags, Options->FEMMeshImportData.Get());
+	if (Mesh)
+	{
+		Options->FEMMeshImportData->SaveOptions();
+	}
 	return Mesh;
+}
+
+UFEMMesh* UFEMMeshFactory::CreateMesh(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, const UFEMMeshImportData* Data)
+{
+	if (!Data || !Data->bProceduralGenerate)
+	{
+		return nullptr;
+	}
+	const ProceduralMeshOptions Options = GetProceduralOptions(*Data);
+	if (!UFEMMesh::ValidateProceduralMeshOptions(Options))
+	{
+		return nullptr;
+	}
+	UFEMMesh* Mesh = NewObject<UFEMMesh>(InParent, InClass, InName, Flags);
+	return Mesh->CreateProceduralMesh(Options) ? Mesh : nullptr;
 }
 
 uint32 UFEMMeshFactory::GetMenuCategories() const

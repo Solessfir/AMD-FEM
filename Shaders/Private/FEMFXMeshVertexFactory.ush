@@ -6,6 +6,7 @@
 
 #include "/Engine/Private/VertexFactoryCommon.ush"
 #include "FEMFXMeshVertexFactoryCommon.ush"
+#include "/Engine/Private/LightmapData.ush"
 
 #if GPUSKIN_PASS_THROUGH
 #include "GpuSkinCommon.ush"
@@ -39,7 +40,7 @@ StructuredBuffer<uint> BarycentricPosIdBuffer;  // TODO: Rename to BarycentricPo
 StructuredBuffer<FFEMFXMeshBarycentricPos> BarycentricPosBuffer;
 
 
-//#include "/Engine/Generated/UniformBuffers/PrecomputedLightingBuffer.ush"
+#include "/Engine/Generated/UniformBuffers/PrecomputedLightingBuffer.ush"
 
 #if USE_INSTANCING
 	#ifndef USE_DITHERED_LOD_TRANSITION_FOR_INSTANCED

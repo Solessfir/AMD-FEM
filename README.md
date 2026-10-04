@@ -62,7 +62,7 @@ AMD's authoring workflow uses **Houdini**, a separate 3D application, with their
 
 - [AMD FEMFX Houdini assets](https://github.com/GPUOpen-Effects/FEMFX/blob/master/houdini16.5/hda/AMD_FEM_Assets.otl), supplied for Houdini 16.5.
 - [Barrel creation walkthrough](https://github.com/GPUOpen-Effects/FEMFX/blob/master/docs/FEM-my_first_barrel_walkthrough.pdf).
-- [FEM_SimpleSquare.fem example](https://github.com/GPUOpen-Effects/FEMFX/blob/master/samples/FEMFXViewer/FEMFiles/FEM_SimpleSquare.fem) from AMD's viewer samples. This upstream file uses `fbxFiles`; the current Unreal importer expects `FbxFiles`. Rename that JSON key before attempting import.
+- [FEM_SimpleSquare.fem example](https://github.com/GPUOpen-Effects/FEMFX/blob/master/samples/FEMFXViewer/FEMFiles/FEM_SimpleSquare.fem) from AMD's viewer samples. Import this file directly; the importer accepts both the upstream `fbxFiles` spelling and the older Unreal `FbxFiles` spelling.
 
 For the quick start above, no `.fem` file or Houdini installation is needed. The **FEM Mesh** creation dialog generates a tetrahedral grid directly in Unreal.
 
@@ -80,7 +80,7 @@ With no active play session, open **Window > Developer Tools > Session Frontend 
 Automation RunTests FEM.
 ```
 
-The suite checks procedural creation, settings persistence, malformed imports, GPU rendering and editor mesh changes, elastic deformation, fracture, and repeated PIE teardown. Rendering tests require a real graphics RHI. Valid external FEM/FBX imports are not yet covered by automation.
+The suite checks procedural creation, settings persistence, FEM import field compatibility and malformed files, GPU rendering and editor mesh changes, elastic deformation, fracture, and repeated PIE teardown. Rendering tests require a real graphics RHI. To test AMD's example import, launch the editor with `-FEMImportFixture="<path-to-FEM_SimpleSquare.fem>"` and run the FEM tests. Referenced FBX imports are not yet covered by automation.
 
 ## References
 

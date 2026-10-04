@@ -35,41 +35,63 @@ void AFEMActor::BeginPlay()
 
 void AFEMActor::Destroyed()
 {
+	ReleaseSimulationResources();
 	Super::Destroyed();
+}
 
-	if (IsValid(Scene))
-	{
-		Scene->RemoveActor(this);
+void AFEMActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	ReleaseSimulationResources();
+	Super::EndPlay(EndPlayReason);
+}
 
-	}
-	for (int32 i = 0; i < rigidBodies.Num(); ++i)
-	{
-		AMD::FmRemoveRigidBodyFromScene(Scene->GetSceneBuffer(), FmGetObjectId(*rigidBodies[i]));
-        AMD::FmDestroyRigidBody(rigidBodies[i]);
-	}
-	rigidBodies.Empty();
+void AFEMActor::ReleaseSimulationResources()
+{
+	AMD::FmScene* SceneBuffer = Scene && Scene->IsInitialized() ? Scene->GetSceneBuffer() : nullptr;
 
-	for (int32 i = 0; i < AngleConstraints.Num(); ++i)
+	if (SceneBuffer)
 	{
-		AMD::FmRemoveRigidBodyAngleConstraintFromScene(Scene->GetSceneBuffer(), AngleConstraints[i].Value);
+		for (const auto& Constraint : AngleConstraints)
+			AMD::FmRemoveRigidBodyAngleConstraintFromScene(SceneBuffer, Constraint.Value);
+		for (const auto& Constraint : GlueConstraints)
+			AMD::FmRemoveGlueConstraintFromScene(SceneBuffer, Constraint.Value);
+		for (const auto& Constraint : PlaneConstraints)
+			AMD::FmRemovePlaneConstraintFromScene(SceneBuffer, Constraint.Value);
 	}
-	AngleConstraints.Empty();
-	for (int i = 0; i < GlueConstraints.Num(); ++i)
-	{
-		AMD::FmRemoveGlueConstraintFromScene(Scene->GetSceneBuffer(), GlueConstraints[i].Value);
-	}
-	GlueConstraints.Empty();
-	for (int i = 0; i < PlaneConstraints.Num(); ++i)
-	{
-		AMD::FmRemovePlaneConstraintFromScene(Scene->GetSceneBuffer(), PlaneConstraints[i].Value);
-	}
-	PlaneConstraints.Empty();
+	AngleConstraints.Reset();
+	GlueConstraints.Reset();
+	PlaneConstraints.Reset();
 
+	for (AMD::FmRigidBody* RigidBody : rigidBodies)
+	{
+		if (RigidBody)
+		{
+			if (SceneBuffer)
+				AMD::FmRemoveRigidBodyFromScene(SceneBuffer, AMD::FmGetObjectId(*RigidBody));
+			AMD::FmDestroyRigidBody(RigidBody);
+		}
+	}
+	rigidBodies.Reset();
+
+	if (Scene)
+		Scene->FEMActors.Remove(this);
+
+	for (UActorComponent* Component : MeshComponents)
+	{
+		if (UFEMFXMeshComponent* MeshComponent = Cast<UFEMFXMeshComponent>(Component))
+			MeshComponent->ReleaseSimulationResources();
+	}
+	Scene = nullptr;
+	resourceIdToBufferId.Reset();
 }
 
 void AFEMActor::PreFEMLoad_Implementation()
 {
-	GetComponents(MeshComponents);
+	TArray<UFEMFXMeshComponent*> FEMComponents;
+	GetComponents(FEMComponents);
+	MeshComponents.Reset();
+	for (UFEMFXMeshComponent* Component : FEMComponents)
+		MeshComponents.Add(Component);
 
 	TArray<AActor*> ActorsFound;
 	UGameplayStatics::GetAllActorsOfClass(this, AFEMFXScene::StaticClass(), ActorsFound);
@@ -104,7 +126,7 @@ void AFEMActor::PreFEMLoad_Implementation()
 	}
 
 	if(IsValid(Scene))
-		Scene->FEMActors.Add(this);
+		Scene->FEMActors.AddUnique(this);
 }
 
 void AFEMActor::FEMLoad_Implementation()
@@ -126,6 +148,8 @@ void AFEMActor::PostFEMLoad_Implementation()
 		if (comp->AddToSimulation) 
 		{
 			comp->LoadSimObject();
+			if (!comp->GetTetMeshBuffer())
+				continue;
 
 			if (IsValid(Scene))
 			{
@@ -157,7 +181,7 @@ void AFEMActor::PostFEMLoad_Implementation()
 
 void AFEMActor::SetupRigidBodies_Implementation()
 {
-    if (!IsValid(Scene))
+    if (!IsValid(Scene) || !Scene->GetSceneBuffer() || rigidBodies.Num() > 0)
         return;
     
 	AMD::FmQuat quat = ConvertUnrealQuaternionToFEM(GetTransform().GetRotation());
@@ -228,6 +252,8 @@ UFEMFXMeshComponent* AFEMActor::GetComponentByName(FString name)
 
 void AFEMActor::SetupConstraints_Implementation()
 {
+	if (!IsValid(Scene) || !Scene->GetSceneBuffer())
+		return;
 
 	for (auto it = FEMResource.AngleConstraints.CreateIterator(); it; it++)
 	{
@@ -391,6 +417,8 @@ void AFEMActor::SetupConstraints_Implementation()
 
 void AFEMActor::UpdateConstraints_Implementation()
 {
+	if (!IsValid(Scene) || !Scene->GetSceneBuffer())
+		return;
     // Temporary until can be converted to blueprints
     if (GetName().Contains(FString("Car")))
     {
@@ -416,6 +444,8 @@ void AFEMActor::UpdateConstraints_Implementation()
 TArray<FAngleConstraintInfo> AFEMActor::GetAngleConstraintsByName(FString Name)
 {
 	TArray<FAngleConstraintInfo> constraintInfos;
+	if (!IsValid(Scene) || !Scene->IsInitialized() || !Scene->GetSceneBuffer())
+		return constraintInfos;
 
 	for (int i = 0; i < AngleConstraints.Num(); ++i)
 	{
@@ -434,11 +464,14 @@ TArray<FAngleConstraintInfo> AFEMActor::GetAngleConstraintsByName(FString Name)
 
 FAngleConstraintInfo AFEMActor::GetAngleConstraintByIndex(int Index)
 {
-	FAngleConstraintInfo info;
+	FAngleConstraintInfo info{};
+	if (!IsValid(Scene) || !Scene->IsInitialized() || !Scene->GetSceneBuffer())
+		return info;
 
-	if (Index > AngleConstraints.Num())
+	if (!AngleConstraints.IsValidIndex(Index))
 	{
 		UE_LOG(FEMLog, Error, TEXT("Angle Constrain Index out of bounds."));
+		return info;
 	}
 
 	info = FAngleConstraintInfo::FromAMDType(AMD::FmGetRigidBodyAngleConstraintParams(*Scene->GetSceneBuffer(), AngleConstraints[Index].Value));
@@ -451,6 +484,8 @@ FAngleConstraintInfo AFEMActor::GetAngleConstraintByIndex(int Index)
 TArray<FGlueConstraintInfo> AFEMActor::GetGlueConstraintsByName(FString Name)
 {
 	TArray<FGlueConstraintInfo> constraintInfos;
+	if (!IsValid(Scene) || !Scene->IsInitialized() || !Scene->GetSceneBuffer())
+		return constraintInfos;
 
 	for (int i = 0; i < GlueConstraints.Num(); ++i)
 	{
@@ -471,11 +506,14 @@ TArray<FGlueConstraintInfo> AFEMActor::GetGlueConstraintsByName(FString Name)
 
 FGlueConstraintInfo AFEMActor::GetGlueConstraintByIndex(int Index)
 {
-	FGlueConstraintInfo info;
+	FGlueConstraintInfo info{};
+	if (!IsValid(Scene) || !Scene->IsInitialized() || !Scene->GetSceneBuffer())
+		return info;
 
-	if (Index > GlueConstraints.Num())
+	if (!GlueConstraints.IsValidIndex(Index))
 	{
 		UE_LOG(FEMLog, Error, TEXT("Glue Constrain Index out of bounds."));
+		return info;
 	}
 
 	info = FGlueConstraintInfo::FromAMDType(
@@ -490,6 +528,8 @@ FGlueConstraintInfo AFEMActor::GetGlueConstraintByIndex(int Index)
 TArray<FPlaneConstraintInfo> AFEMActor::GetPlaneConstraintsByName(FString Name)
 {
 	TArray<FPlaneConstraintInfo> constraintInfos;
+	if (!IsValid(Scene) || !Scene->IsInitialized() || !Scene->GetSceneBuffer())
+		return constraintInfos;
 
 	for (int i = 0; i < PlaneConstraints.Num(); ++i)
 	{
@@ -508,11 +548,14 @@ TArray<FPlaneConstraintInfo> AFEMActor::GetPlaneConstraintsByName(FString Name)
 
 FPlaneConstraintInfo AFEMActor::GetPlaneConstraintByIndex(int Index)
 {
-	FPlaneConstraintInfo info;
+	FPlaneConstraintInfo info{};
+	if (!IsValid(Scene) || !Scene->IsInitialized() || !Scene->GetSceneBuffer())
+		return info;
 
-	if (Index > PlaneConstraints.Num())
+	if (!PlaneConstraints.IsValidIndex(Index))
 	{
 		UE_LOG(FEMLog, Error, TEXT("Plane Constrain Index out of bounds."));
+		return info;
 	}
 
 	info = FPlaneConstraintInfo::FromAMDType(AMD::FmGetPlaneConstraintParams(*Scene->GetSceneBuffer(), PlaneConstraints[Index].Value));
@@ -524,6 +567,8 @@ FPlaneConstraintInfo AFEMActor::GetPlaneConstraintByIndex(int Index)
 
 void AFEMActor::UpdateAngleConstraint(FAngleConstraintInfo info, bool ShouldDisable)
 {
+	if (!IsValid(Scene) || !Scene->GetSceneBuffer())
+		return;
     AMD::FmSetRigidBodyAngleConstraintFrictionCoeff(Scene->GetSceneBuffer(), info.ConstraintId, info.FrictionCoeff);
 
     if (ShouldDisable)
@@ -534,6 +579,8 @@ void AFEMActor::UpdateAngleConstraint(FAngleConstraintInfo info, bool ShouldDisa
 
 void AFEMActor::UpdateGlueConstraint(FGlueConstraintInfo info, bool ShouldDisable)
 {
+	if (!IsValid(Scene) || !Scene->GetSceneBuffer())
+		return;
     if (ShouldDisable)
     {
         AMD::FmEnableGlueConstraint(Scene->GetSceneBuffer(), info.ConstraintId, false);
@@ -542,6 +589,8 @@ void AFEMActor::UpdateGlueConstraint(FGlueConstraintInfo info, bool ShouldDisabl
 
 void AFEMActor::UpdatePlaneConstraint(FPlaneConstraintInfo info, bool ShouldDisable)
 {
+	if (!IsValid(Scene) || !Scene->GetSceneBuffer())
+		return;
     if (ShouldDisable)
     {
         AMD::FmEnablePlaneConstraint(Scene->GetSceneBuffer(), info.ConstraintId, false);
@@ -665,6 +714,8 @@ void AFEMActor::AddObjectIds(TArray<uint32>& TetMeshIds, TArray<uint32>& RigidBo
         if (MeshComponents[i])
         {
             AMD::FmTetMeshBuffer* TetMeshBuffer = Cast<UFEMFXMeshComponent>(MeshComponents[i])->GetTetMeshBuffer();
+            if (!TetMeshBuffer)
+                continue;
             int NumTetMeshes = FmGetNumTetMeshes(*TetMeshBuffer);
             for (int MeshIdx = 0; MeshIdx < NumTetMeshes; MeshIdx++)
             {
@@ -672,11 +723,11 @@ void AFEMActor::AddObjectIds(TArray<uint32>& TetMeshIds, TArray<uint32>& RigidBo
                 TetMeshIds.Add(FmGetObjectId(*TetMesh));
             }
 
-            int NumRigidBodies = rigidBodies.Num();
-            for (int RBIdx = 0; RBIdx < NumRigidBodies; RBIdx++)
-            {
-                RigidBodyIds.Add(FmGetObjectId(*rigidBodies[i]));
-            }
         }
     }
+	for (AMD::FmRigidBody* RigidBody : rigidBodies)
+	{
+		if (RigidBody)
+			RigidBodyIds.Add(AMD::FmGetObjectId(*RigidBody));
+	}
 }

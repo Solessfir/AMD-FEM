@@ -16,7 +16,7 @@ class AFEMFXRigidBodyScene;
 class AFEMActor;
 
 UCLASS(BlueprintType, Blueprintable, config = Engine, meta = (ShortTooltip = "FEMScene is required to create FEM Meshes. Manages the Buffer data."))
-class AFEMFXScene : public AActor
+class FEM_API AFEMFXScene : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
@@ -83,7 +83,7 @@ class AFEMFXScene : public AActor
 	bool bAllowTick;
 
 	/** BEGIN AACTOR INTERFACE */
-	virtual void Destroyed();
+	virtual void Destroyed() override;
 
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -175,13 +175,17 @@ class AFEMFXScene : public AActor
     bool IsConditionChecked(FString name);
 
 private:
+	friend class UFEMFXMeshComponent;
+	void UnregisterComponent(UFEMFXMeshComponent* comp);
+
 	bool bIsInitialized;
+	bool bIsShuttingDown = false;
 
 	size_t SceneBufferNumBytes;
 	
 	uint8_t* SceneBufferMemory;
 
-	AMD::FmScene* AMDFXSceneBuffer;
+	AMD::FmScene* AMDFXSceneBuffer = nullptr;
 
 	/** Brought Over from Eric's FEMFXScene Actor */
 	float frameTime;

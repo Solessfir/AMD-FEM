@@ -830,11 +830,41 @@ AMD::FmTetMeshBuffer* UFEMMesh::LoadTempBuffer(AMD::FmVector3* RestPositions, in
 
 	AMD::FmFinishTetMeshInit(&tetMesh);
 
+	delete[] vertIncidentTets;
 	return TetMeshBuffer;
 }
 
-void UFEMMesh::CreateProceduralMesh(ProceduralMeshOptions options)
+bool UFEMMesh::ValidateProceduralMeshOptions(const ProceduralMeshOptions& options)
 {
+	if (options.NumCubesX < 1 || options.NumCubesY < 1 || options.NumCubesZ < 1
+		|| options.NumCubesX >= MAX_VERTS_PER_MESH_BUFFER || options.NumCubesY >= MAX_VERTS_PER_MESH_BUFFER || options.NumCubesZ >= MAX_VERTS_PER_MESH_BUFFER)
+	{
+		return false;
+	}
+
+	const uint64 NumVerts = (uint64(options.NumCubesX) + 1) * (uint64(options.NumCubesY) + 1) * (uint64(options.NumCubesZ) + 1);
+	if (NumVerts > MAX_VERTS_PER_MESH_BUFFER)
+	{
+		return false;
+	}
+
+	return FMath::IsFinite(options.CubeX) && options.CubeX > 0.0f
+		&& FMath::IsFinite(options.CubeY) && options.CubeY > 0.0f
+		&& FMath::IsFinite(options.CubeZ) && options.CubeZ > 0.0f
+		&& FMath::IsFinite(options.Scale) && options.Scale > 0.0f
+		&& FMath::IsFinite(options.CubeX * options.Scale * options.NumCubesX * 100.0f)
+		&& FMath::IsFinite(options.CubeY * options.Scale * options.NumCubesY * 100.0f)
+		&& FMath::IsFinite(options.CubeZ * options.Scale * options.NumCubesZ * 100.0f);
+}
+
+bool UFEMMesh::CreateProceduralMesh(ProceduralMeshOptions options)
+{
+	if (!ValidateProceduralMeshOptions(options))
+	{
+		UE_LOG(FEMLog, Error, TEXT("Invalid procedural FEM mesh options: use positive finite dimensions and counts producing at most %d vertices."), MAX_VERTS_PER_MESH_BUFFER);
+		return false;
+	}
+
 	AMD::uint numVerts;
 	AMD::uint numTets;
 
@@ -849,21 +879,23 @@ void UFEMMesh::CreateProceduralMesh(ProceduralMeshOptions options)
 
 	ComponentResources = UFEMResource::ProcessResource(restPositions, tetVertIds, vertIncidentTets, numVerts, numTets);
 
-    AMD::FmBvh* BvHierarchy = AMD::FmCreateBvh(numTets);
-	AMD::FmBuildRestMeshTetBvh(BvHierarchy, restPositions, tetVertIds, numTets);
-
 	AMD::FmTetMeshBuffer* buffer = LoadTempBuffer(restPositions, numTets, numVerts, tetVertIds, false);
 
 	FFEMFXMeshSection* meshSection = CreateRenderMeshFromTetMesh(buffer);
 	meshSection->MaterialIndex = ImportedResource->GetNumSections() - 1;
 
 	GetTetMesh()->UpdateTetMesh(buffer);
+	TetMesh->FEMMeshInteriorMeshSection = 0;
+	// Procedural meshes already render every tet face, but fracture events still need per-tet metadata.
+	TetMesh->FEMMeshTetFractureNewRenderFaces.Reset();
+	TetMesh->FEMMeshTetFractureNewRenderFaces.SetNum(numTets);
 
 	delete[] vertIncidentTets;
 	delete[] restPositions;
 	delete[] tetVertIds;
 
     FmDestroyTetMeshBuffer(buffer);
+	return true;
 }
 
 FFEMFXMeshSection* UFEMMesh::CreateRenderMeshFromTetMesh(AMD::FmTetMeshBuffer* tetMeshBuffer)

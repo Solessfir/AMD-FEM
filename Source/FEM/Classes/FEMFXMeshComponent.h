@@ -196,6 +196,7 @@ class FEM_API UFEMFXMeshComponent : public UMeshComponent, public IInterface_Col
 	void CreateFEMMeshFromTetMesh();
 
 	void CleanResources();
+	void ReleaseSimulationResources();
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="FEMMesh")
@@ -209,6 +210,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "FEM")
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 #ifdef WITH_EDITOR
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent);
@@ -419,11 +421,14 @@ public:
 
 private:
 
-	AMD::FmTetMeshBuffer* TetMeshBuffer;
-	AMD::FmTetMesh* TetMesh;
-	AMD::FmVector3* RestPositions;
-	AMD::FmTetVertIds* TetVertIds;
-	AMD::FmBvh* BvHierarchy;
+	UPROPERTY(Transient)
+	AFEMFXScene* RegisteredScene = nullptr;
+
+	AMD::FmTetMeshBuffer* TetMeshBuffer = nullptr;
+	AMD::FmTetMesh* TetMesh = nullptr;
+	AMD::FmVector3* RestPositions = nullptr;
+	AMD::FmTetVertIds* TetVertIds = nullptr;
+	AMD::FmBvh* BvHierarchy = nullptr;
 
     bool TetAssignmentsNeedUpdate;
 	TArray<FShardVertTetAssignments> TempShardVertTetAssignmentsBuffer;

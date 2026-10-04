@@ -42,7 +42,7 @@ struct PreProcessedMesh
 };
 
 UCLASS()
-class APreProcessedMeshHelper : public AActor
+class FEM_API APreProcessedMeshHelper : public AActor
 {
 	GENERATED_UCLASS_BODY()
 

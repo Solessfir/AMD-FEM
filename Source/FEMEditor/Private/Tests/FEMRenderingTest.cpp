@@ -13,6 +13,7 @@
 #include "Misc/ScopeExit.h"
 #include "RenderingThread.h"
 #include "TextureResource.h"
+#include "UObject/UnrealType.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFEMRenderingTest, "FEM.Rendering.ProceduralMesh", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
@@ -101,7 +102,49 @@ bool FFEMRenderingTest::RunTest(const FString& Parameters)
 		MeshPixels += Pixel.R != EmptyPixel.R || Pixel.G != EmptyPixel.G || Pixel.B != EmptyPixel.B;
 	}
 	AddInfo(FString::Printf(TEXT("FEM geometry changed %d of %d capture pixels."), MeshPixels, Pixels.Num()));
-	return TestTrue(TEXT("FEM section produces visible geometry"), MeshPixels > 16);
+	TestTrue(TEXT("FEM section produces visible geometry"), MeshPixels > 16);
+
+	UFEMMesh* Replacement = NewObject<UFEMMesh>(Component);
+	Options.Scale = 2.0f;
+	if (!TestTrue(TEXT("Create replacement mesh"), Replacement->CreateProceduralMesh(Options)))
+	{
+		return false;
+	}
+	FProperty* MeshProperty = FindFProperty<FProperty>(UFEMFXMeshComponent::StaticClass(), GET_MEMBER_NAME_CHECKED(UFEMFXMeshComponent, FEMMesh));
+	Component->PreEditChange(MeshProperty);
+	Component->FEMMesh = Replacement;
+	FPropertyChangedEvent ChangedEvent(MeshProperty);
+	Component->PostEditChangeProperty(ChangedEvent);
+	TestTrue(TEXT("Component remains registered after changing its mesh"), Component->IsRegistered());
+	Capture->CaptureScene();
+	FlushRenderingCommands();
+	TArray<FColor> ReplacementPixels;
+	if (!TestTrue(TEXT("Read replacement capture"), Resource->ReadPixels(ReplacementPixels)))
+	{
+		return false;
+	}
+	TestTrue(TEXT("Changing the mesh updates rendered geometry"), ReplacementPixels != Pixels);
+	int32 ReplacementMeshPixels = 0;
+	for (int32 Index = 0; Index < ReplacementPixels.Num(); ++Index)
+	{
+		const FColor& Pixel = ReplacementPixels[Index];
+		const FColor& EmptyPixel = Background[Index];
+		ReplacementMeshPixels += Pixel.R != EmptyPixel.R || Pixel.G != EmptyPixel.G || Pixel.B != EmptyPixel.B;
+	}
+	TestTrue(TEXT("Replacement mesh produces visible geometry"), ReplacementMeshPixels > 16);
+
+	Component->PreEditChange(MeshProperty);
+	Component->FEMMesh = nullptr;
+	Component->PostEditChangeProperty(ChangedEvent);
+	Capture->CaptureScene();
+	FlushRenderingCommands();
+	TArray<FColor> ClearedPixels;
+	if (!TestTrue(TEXT("Read cleared capture"), Resource->ReadPixels(ClearedPixels)))
+	{
+		return false;
+	}
+	TestTrue(TEXT("Clearing the mesh removes rendered geometry"), ClearedPixels == Background);
+	return true;
 }
 
 #endif

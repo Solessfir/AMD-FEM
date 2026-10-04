@@ -228,6 +228,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "FEM")
 	virtual void Destroyed() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	void ReleaseSimulationResources();
 	/*******/
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "FEM")
