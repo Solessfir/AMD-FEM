@@ -8,9 +8,9 @@ Recorded in the [FEMFX AlienPods sample project](https://github.com/GPUOpenSoftw
 
 ## Supported
 
-- **Unreal Engine:** 4.27 only.
-- **Windows:** 64-bit.
-- **Linux:** x86_64.
+- **Unreal Engine:** 4.27 only
+- **Windows:** 64-bit
+- **Linux:** x86_64
 
 ## Installation
 
