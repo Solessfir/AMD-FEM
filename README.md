@@ -97,3 +97,7 @@ The suite checks procedural creation, settings persistence, FEM import field com
 - [AMD FEMFX library](https://github.com/GPUOpen-Effects/FEMFX)
 - [Original AMD Unreal Engine plugin](https://github.com/GPUOpenSoftware/UnrealEngine/tree/FEMFX-4.18)
 - [Original Alien Pods example project](https://github.com/GPUOpenSoftware/UnrealEngine/tree/FEMFX-AlienPods)
+
+## License
+
+Licensed under the [MIT License](LICENSE).
