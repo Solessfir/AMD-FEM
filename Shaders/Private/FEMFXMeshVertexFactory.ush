@@ -872,7 +872,6 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 
 	float TangentSign;
 	Intermediates.TangentToLocal = CalcTangentToLocal(Input, TangentSign);
-	Intermediates.TangentToWorld = CalcTangentToWorld(Intermediates,Intermediates.TangentToLocal);
 	Intermediates.TangentToWorldSign = TangentSign * GetPrimitiveData(Intermediates.PrimitiveId).InvNonUniformScaleAndDeterminantSign.w;
 
 #if USE_INSTANCING && !USE_INSTANCING_BONEMAP
@@ -960,7 +959,7 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 
     half3x3 TetRotationHalf = transpose(TetRotation);
     Intermediates.TangentToLocal = mul(Intermediates.TangentToLocal, TetRotationHalf);
-    Intermediates.TangentToWorld = mul(Intermediates.TangentToWorld, TetRotationHalf);
+    Intermediates.TangentToWorld = CalcTangentToWorld(Intermediates, Intermediates.TangentToLocal);
 
     //Intermediates.TetDeformedPos -= Input.Position;
 
@@ -982,17 +981,17 @@ half3x3 VertexFactoryGetTangentToLocal( FVertexFactoryInput Input, FVertexFactor
 // @return translated world position
 float4 VertexFactoryGetWorldPosition(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates)
 {
+    // Match the simulated positions used by the depth and shadow passes.
+    float4 Position = float4(Intermediates.TetDeformedPos, 1.0);
 #if USE_INSTANCING
 	// Workaround for FORT-70572. It turns out on old Nvidia (AMD?) drivers, SV_VertexID must be used if
     // SV_InstanceID is used. Otherwise, SV_InstanceID will get weird (SV_VertexID?) values
     #if SM4_PROFILE && MANUAL_VERTEX_FETCH
-        float4 Position = Input.Position + Input.VertexId * asfloat(0x00800001);
-    #else
-        float4 Position = Input.Position;
+        Position += Input.VertexId * asfloat(0x00800001);
     #endif
 	return CalcWorldPosition(Position, GetInstanceTransform(Intermediates), Intermediates.PrimitiveId) * Intermediates.PerInstanceParams.z;
 #else
-	return CalcWorldPosition(Input.Position, Intermediates.PrimitiveId);
+	return CalcWorldPosition(Position, Intermediates.PrimitiveId);
 #endif	// USE_INSTANCING
 }
 

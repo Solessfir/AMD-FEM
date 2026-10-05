@@ -82,7 +82,7 @@ With no active play session, open **Window > Developer Tools > Session Frontend 
 Automation RunTests FEM.
 ```
 
-The suite checks procedural creation, settings persistence, FEM import field compatibility and malformed files, GPU rendering and editor mesh changes, elastic deformation, fracture, and repeated PIE teardown. Rendering tests require a real graphics RHI. To test AMD's example import, launch the editor with `-FEMImportFixture="<path-to-FEM_SimpleSquare.fem>"` and run the FEM tests. Referenced FBX imports are not yet covered by automation.
+The suite checks procedural creation, settings persistence, FEM import field compatibility and malformed files, GPU lighting and simulated render positions against native Unreal meshes, editor mesh changes, elastic deformation, fracture, and repeated PIE teardown. Rendering tests require a real graphics RHI. To test AMD's example import, launch the editor with `-FEMImportFixture="<path-to-FEM_SimpleSquare.fem>"` and run the FEM tests. Referenced FBX imports are not yet covered by automation.
 
 ## References
 
