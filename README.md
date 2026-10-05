@@ -2,7 +2,15 @@
 
 An Unreal Engine plugin based on AMD's [FEMFX](https://github.com/GPUOpen-Effects/FEMFX) CPU finite element library for deformable and breakable objects.
 
-**Supports Unreal Engine 4.27 only, on Windows 64-bit and Linux x86_64.** Linux libraries and plugin source compilation are validated; Linux editor and Vulkan rendering still need runtime verification.
+![FEMFX deformation preview in Unreal Engine 4.27](Resources/preview.gif)
+
+Recorded in the [FEMFX AlienPods sample project](https://github.com/GPUOpenSoftware/UnrealEngine/tree/FEMFX-AlienPods).
+
+## Supported
+
+- **Unreal Engine:** 4.27 only.
+- **Windows:** 64-bit.
+- **Linux:** x86_64.
 
 ## Installation
 
