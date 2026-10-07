@@ -14,7 +14,7 @@ Recorded in the [FEMFX AlienPods sample project](https://github.com/GPUOpenSoftw
 
 ## Installation
 
-Download this repository for a source installation, or a compatible UE 4.27 package for your platform from [Releases](https://github.com/Solessfir/AMD-FEM/releases), when available.
+Download this repository for a source installation, or a compatible UE 4.27 package for your platform from [Releases](https://github.com/Solessfir/AMD-FEM/releases).
 
 1. Close the editor and put the plugin in `<Project>/Plugins/AMD-FEM`, with `FEM.uplugin` directly inside that folder.
 2. Open your UE 4.27 project. **Finite Element Material** is enabled by default. For a source installation, allow Unreal to compile the plugin when prompted.
